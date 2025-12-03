@@ -42,32 +42,43 @@ export type SyncResult = {
   ok: boolean;
   message: string | null;
 };
-
 export async function syncLibrary(
   _prevState: SyncResult,
   formData: FormData
 ): Promise<SyncResult> {
   try {
-    // Check if a custom path was provided in the form
-    const customPath = formData.get('path') as string | null;
+    console.log('--- SYNC STARTED ---'); // <--- LOG 1: Start
 
-    // Use custom path if provided, otherwise fall back to env/constant
+    const customPath = formData.get('path') as string | null;
     const rawRoot = customPath?.trim() ? customPath.trim() : VIDEO_ROOT;
     const root = path.resolve(rawRoot);
+
+    console.log(`Scanning directory: "${root}"`); // <--- LOG 2: Verify the path
 
     const stats = await fs.stat(root).catch(() => null);
 
     if (!stats || !stats.isDirectory()) {
+      console.error('Directory not found or is not a folder.'); // <--- LOG 3: Path Error
       return {
         ok: false,
         message: `Directory not found: "${root}"`,
       };
     }
 
+    // 1. Check if files are being found on the disk
     const videoPaths = await collectVideoFiles(root);
+    console.log(`Found ${videoPaths.length} files on disk.`); // <--- LOG 4: File Count
+
+    if (videoPaths.length > 0) {
+      console.log('First file found:', videoPaths[0]); // <--- LOG 5: Sample file path
+    }
+
     const foundFilenames = new Set(
       videoPaths.map((absolutePath) => path.basename(absolutePath))
     );
+
+    // 2. Log before writing to DB
+    console.log('Starting Database Upsert...'); // <--- LOG 6
 
     await Promise.all(
       videoPaths.map(async (absolutePath) => {
@@ -89,9 +100,15 @@ export async function syncLibrary(
       })
     );
 
+    console.log('Database Upsert Complete.'); // <--- LOG 7
+
     const existing = await prisma.video.findMany({
       select: { filename: true },
     });
+
+    // 3. Check what's currently in the DB
+    console.log(`Total videos currently in DB: ${existing.length}`); // <--- LOG 8
+
     const missingFilenames = existing
       .map((video) => video.filename)
       .filter((filename) => !foundFilenames.has(filename));
@@ -99,12 +116,14 @@ export async function syncLibrary(
     let removedCount = 0;
     if (missingFilenames.length > 0) {
       removedCount = missingFilenames.length;
+      console.log(`Removing ${removedCount} missing videos from DB.`); // <--- LOG 9
       await prisma.video.deleteMany({
         where: { filename: { in: missingFilenames } },
       });
     }
 
     revalidatePath('/');
+    console.log('--- SYNC FINISHED SUCCESSFULLY ---'); // <--- LOG 10
 
     if (videoPaths.length === 0 && removedCount === 0) {
       return {
@@ -127,6 +146,7 @@ export async function syncLibrary(
       } from "${path.basename(root)}"${removalNote}.`,
     };
   } catch (error) {
+    console.error('SYNC ERROR:', error); // <--- LOG 11: Catch actual errors
     const fallback =
       error instanceof Error
         ? error.message

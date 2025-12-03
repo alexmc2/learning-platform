@@ -4,7 +4,7 @@ import { HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConnectLocalModal } from '@/components/connect-local-modal';
-// import { ConnectJellyfinModal } from '@/components/connect-jellyfin-modal'; // <-- UNCOMMENT THIS
+import { ConnectJellyfinModal } from '@/components/connect-jellyfin-modal'; // <-- IMPORTS FIXED
 import { cn } from '@/lib/utils';
 
 // --- Brand Icons ---
@@ -35,8 +35,13 @@ function YouTubeLogo({ className }: { className?: string }) {
 }
 
 export function EmptyState() {
+  // FIXED: This function handles what happens after a successful login.
+  // We reload the page so the App can re-fetch data and show the library.
+  const handleConnected = () => {
+    window.location.reload();
+  };
+
   return (
-    // FIXED: Added 'mx-auto' so it centers itself in the full-width parent
     <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center gap-12 px-6 py-10">
       <div className="text-center space-y-4 max-w-lg">
         <h2 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
@@ -71,11 +76,12 @@ export function EmptyState() {
           </div>
 
           <div className="z-10 mt-8 w-full">
-            {/* <ConnectJellyfinModal> */}
-            <Button className="w-full bg-[#AA5CC3] text-white hover:bg-[#AA5CC3]/90">
-              Connect Server
-            </Button>
-            {/* </ConnectJellyfinModal> */}
+            {/* FIXED: Added onConnected prop */}
+            <ConnectJellyfinModal onConnected={handleConnected}>
+              <Button className="w-full bg-[#AA5CC3] text-white hover:bg-[#AA5CC3]/90">
+                Connect Server
+              </Button>
+            </ConnectJellyfinModal>
           </div>
         </Card>
 
