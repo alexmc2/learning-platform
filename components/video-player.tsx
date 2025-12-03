@@ -35,13 +35,15 @@ type VideoPlayerProps = {
     title: string;
     completed: boolean;
     duration: number | null;
+    path: string;
   };
   prevId?: number;
   nextId?: number;
 };
 
 export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
-  const streamUrl = `/api/stream?id=${video.id}`;
+  const isRemote = video.path.startsWith('http');
+  const streamUrl = isRemote ? video.path : `/api/stream?id=${video.id}`;
   const nextCompletedValue = (!video.completed).toString();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -62,7 +64,8 @@ export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
       setIsFullscreen(activeElement === playerElement);
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   useEffect(() => {
@@ -88,7 +91,10 @@ export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
     return () => mql.removeListener(updateTouch);
   }, []);
 
-  const describePlaybackIssue = (mediaError?: MediaError | null, domError?: unknown) => {
+  const describePlaybackIssue = (
+    mediaError?: MediaError | null,
+    domError?: unknown
+  ) => {
     if (typeof MediaError !== 'undefined' && mediaError) {
       switch (mediaError.code) {
         case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
@@ -104,7 +110,10 @@ export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
       }
     }
 
-    if (domError instanceof DOMException && domError.name === 'NotSupportedError') {
+    if (
+      domError instanceof DOMException &&
+      domError.name === 'NotSupportedError'
+    ) {
       return 'This browser cannot play the provided video source.';
     }
 
@@ -194,7 +203,9 @@ export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
   };
 
   const progressPercent =
-    duration && duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+    duration && duration > 0
+      ? Math.min(100, (currentTime / duration) * 100)
+      : 0;
 
   const renderControls = (mode: 'overlay' | 'stacked') => {
     const isOverlay = mode === 'overlay';
@@ -232,7 +243,11 @@ export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
               className="grid h-10 w-10 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
               aria-label={isPlaying ? 'Pause video' : 'Play video'}
             >
-              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+              {isPlaying ? (
+                <Pause className="h-5 w-5" />
+              ) : (
+                <Play className="h-5 w-5" />
+              )}
             </button>
             <button
               type="button"
@@ -240,7 +255,11 @@ export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
               className="grid h-10 w-10 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
               aria-label={isMuted ? 'Unmute' : 'Mute'}
             >
-              {isMuted || volume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+              {isMuted || volume === 0 ? (
+                <VolumeX className="h-5 w-5" />
+              ) : (
+                <Volume2 className="h-5 w-5" />
+              )}
             </button>
             <input
               type="range"
@@ -253,7 +272,9 @@ export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
               aria-label="Volume"
             />
             <div className="ml-2 flex items-center gap-1 text-xs font-medium text-white/80">
-              <span className="tabular-nums">{formatDuration(Math.floor(currentTime))}</span>
+              <span className="tabular-nums">
+                {formatDuration(Math.floor(currentTime))}
+              </span>
               <span className="text-white/50">/</span>
               <span className="tabular-nums">
                 {formatDuration(Math.floor(duration || video.duration || 0))}
@@ -283,7 +304,11 @@ export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
               className="grid h-10 w-10 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
-              {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+              {isFullscreen ? (
+                <Minimize2 className="h-5 w-5" />
+              ) : (
+                <Maximize2 className="h-5 w-5" />
+              )}
             </button>
           </div>
         </div>
@@ -322,12 +347,17 @@ export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
             <p>{errorMessage}</p>
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline">
-                <a href={streamUrl} download className="underline-offset-4 hover:underline">
+                <a
+                  href={streamUrl}
+                  download
+                  className="underline-offset-4 hover:underline"
+                >
                   Download the video instead
                 </a>
               </Button>
               <span className="text-xs text-muted-foreground">
-                If the issue persists, try a different browser or check the file format.
+                If the issue persists, try a different browser or check the file
+                format.
               </span>
             </div>
           </div>

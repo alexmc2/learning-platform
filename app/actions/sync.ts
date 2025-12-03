@@ -42,35 +42,35 @@ export type SyncResult = {
   ok: boolean;
   message: string | null;
 };
+
 export async function syncLibrary(
   _prevState: SyncResult,
   formData: FormData
 ): Promise<SyncResult> {
   try {
-    console.log('--- SYNC STARTED ---'); // <--- LOG 1: Start
+    console.log('--- SYNC STARTED ---');
 
     const customPath = formData.get('path') as string | null;
     const rawRoot = customPath?.trim() ? customPath.trim() : VIDEO_ROOT;
     const root = path.resolve(rawRoot);
 
-    console.log(`Scanning directory: "${root}"`); // <--- LOG 2: Verify the path
+    console.log(`Scanning directory: "${root}"`);
 
     const stats = await fs.stat(root).catch(() => null);
 
     if (!stats || !stats.isDirectory()) {
-      console.error('Directory not found or is not a folder.'); // <--- LOG 3: Path Error
+      console.error('Directory not found or is not a folder.');
       return {
         ok: false,
         message: `Directory not found: "${root}"`,
       };
     }
 
-    // 1. Check if files are being found on the disk
     const videoPaths = await collectVideoFiles(root);
-    console.log(`Found ${videoPaths.length} files on disk.`); // <--- LOG 4: File Count
+    console.log(`Found ${videoPaths.length} files on disk.`);
 
     if (videoPaths.length > 0) {
-      console.log('First file found:', videoPaths[0]); // <--- LOG 5: Sample file path
+      console.log('First file found:', videoPaths[0]);
     }
 
     const foundFilenames = new Set(
@@ -78,7 +78,7 @@ export async function syncLibrary(
     );
 
     // 2. Log before writing to DB
-    console.log('Starting Database Upsert...'); // <--- LOG 6
+    console.log('Starting Database Upsert...');
 
     await Promise.all(
       videoPaths.map(async (absolutePath) => {
@@ -100,14 +100,14 @@ export async function syncLibrary(
       })
     );
 
-    console.log('Database Upsert Complete.'); // <--- LOG 7
+    console.log('Database Upsert Complete.');
 
     const existing = await prisma.video.findMany({
       select: { filename: true },
     });
 
     // 3. Check what's currently in the DB
-    console.log(`Total videos currently in DB: ${existing.length}`); // <--- LOG 8
+    console.log(`Total videos currently in DB: ${existing.length}`);
 
     const missingFilenames = existing
       .map((video) => video.filename)
@@ -116,14 +116,14 @@ export async function syncLibrary(
     let removedCount = 0;
     if (missingFilenames.length > 0) {
       removedCount = missingFilenames.length;
-      console.log(`Removing ${removedCount} missing videos from DB.`); // <--- LOG 9
+      console.log(`Removing ${removedCount} missing videos from DB.`);
       await prisma.video.deleteMany({
         where: { filename: { in: missingFilenames } },
       });
     }
 
     revalidatePath('/');
-    console.log('--- SYNC FINISHED SUCCESSFULLY ---'); // <--- LOG 10
+    console.log('--- SYNC FINISHED SUCCESSFULLY ---');
 
     if (videoPaths.length === 0 && removedCount === 0) {
       return {
@@ -146,11 +146,54 @@ export async function syncLibrary(
       } from "${path.basename(root)}"${removalNote}.`,
     };
   } catch (error) {
-    console.error('SYNC ERROR:', error); // <--- LOG 11: Catch actual errors
+    console.error('SYNC ERROR:', error);
     const fallback =
       error instanceof Error
         ? error.message
         : 'Failed to sync the video library.';
     return { ok: false, message: fallback };
+  }
+}
+
+interface JellyfinVideo {
+  title: string;
+  sourceUrl: string;
+  duration?: number | null;
+  completed?: boolean;
+  section?: string;
+}
+
+export async function importJellyfinVideos(videos: JellyfinVideo[]) {
+  console.log('--- IMPORTING JELLYFIN VIDEOS ---');
+
+  try {
+    for (const video of videos) {
+      // Encode the section in the unique key so we can group videos without a schema change.
+      const sectionName = video.section || 'General';
+      const uniqueKey = `jellyfin|${sectionName}|${video.title}`;
+
+      await prisma.video.upsert({
+        where: { filename: uniqueKey },
+        update: {
+          path: video.sourceUrl,
+          title: video.title,
+          duration: video.duration ? Math.round(video.duration) : 0,
+          completed: video.completed ?? false,
+        },
+        create: {
+          filename: uniqueKey,
+          path: video.sourceUrl,
+          title: video.title,
+          duration: video.duration ? Math.round(video.duration) : 0,
+          completed: video.completed ?? false,
+        },
+      });
+    }
+
+    revalidatePath('/');
+    return { ok: true };
+  } catch (error) {
+    console.error('Jellyfin Import Error:', error);
+    return { ok: false };
   }
 }

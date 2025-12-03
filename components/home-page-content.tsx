@@ -6,7 +6,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { PageHeader } from '@/components/page-header';
 import { VideoPlayer } from '@/components/video-player';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { EmptyState } from '@/components/empty-state'; // Import your new component
+import { EmptyState } from '@/components/empty-state';
 
 type Video = {
   id: number;
@@ -14,6 +14,7 @@ type Video = {
   completed: boolean;
   duration: number | null;
   section?: string;
+  path: string;
 };
 
 export function HomePageContent({

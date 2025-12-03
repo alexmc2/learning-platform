@@ -14,6 +14,7 @@ export interface JellyfinItem {
   Type: string;
   IsFolder: boolean;
   RunTimeTicks?: number;
+  Path?: string;
   MediaSources?: Array<{ Id: string; Container: string; Path: string }>;
   UserData?: {
     Played: boolean;
@@ -25,7 +26,7 @@ const CLIENT_INFO =
   'MediaBrowser Client="LearningPlatform", Device="Web", DeviceId="unique-device-id", Version="1.0.0"';
 
 export const jellyfinApi = {
-  // 1. Login (Unchanged)
+  // 1. Login
   async login(config: JellyfinConfig) {
     const baseUrl = config.serverUrl.replace(/\/$/, '');
     const response = await fetch(`${baseUrl}/Users/AuthenticateByName`, {
@@ -49,8 +50,7 @@ export const jellyfinApi = {
     };
   },
 
-  // 2. BROWSE: Look inside a folder (Non-Recursive)
-  // This lets us see "Series" inside "TV Shows" without fetching every episode
+  // 2. BROWSE
   async browse(
     baseUrl: string,
     userId: string,
@@ -58,10 +58,10 @@ export const jellyfinApi = {
     parentId?: string
   ) {
     const params = new URLSearchParams({
-      Recursive: 'false', // <--- IMPORTANT: Only look at immediate children
+      Recursive: 'false',
       Fields: 'Path,IsFolder',
       SortBy: 'SortName',
-      ...(parentId && { ParentId: parentId }), // If null, fetches Libraries (Views)
+      ...(parentId && { ParentId: parentId }),
     });
 
     const response = await fetch(
@@ -78,7 +78,7 @@ export const jellyfinApi = {
     return data.Items as JellyfinItem[];
   },
 
-  // 3. SYNC: Fetch ALL videos inside the chosen folder (Recursive)
+  // 3. SYNC
   async getVideos(
     baseUrl: string,
     userId: string,
@@ -86,11 +86,12 @@ export const jellyfinApi = {
     parentId: string
   ) {
     const params = new URLSearchParams({
-      IncludeItemTypes: 'Movie,Video,Episode', // Get actual video files
-      Recursive: 'true', // <--- Get everything inside this specific folder
+      IncludeItemTypes: 'Movie,Video,Episode',
+      Recursive: 'true',
       Fields: 'MediaSources,Path,RunTimeTicks,Overview',
       SortBy: 'SortName',
       ParentId: parentId,
+      Limit: '10000', 
     });
 
     const response = await fetch(

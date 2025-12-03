@@ -4,10 +4,13 @@ import { HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConnectLocalModal } from '@/components/connect-local-modal';
-import { ConnectJellyfinModal } from '@/components/connect-jellyfin-modal'; // <-- IMPORTS FIXED
+import {
+  ConnectJellyfinModal,
+  type JellyfinVideo,
+} from '@/components/connect-jellyfin-modal';
 import { cn } from '@/lib/utils';
+import { importJellyfinVideos } from '@/app/actions/sync'; 
 
-// --- Brand Icons ---
 function JellyfinLogo({ className }: { className?: string }) {
   return (
     <svg
@@ -35,9 +38,10 @@ function YouTubeLogo({ className }: { className?: string }) {
 }
 
 export function EmptyState() {
-  // FIXED: This function handles what happens after a successful login.
-  // We reload the page so the App can re-fetch data and show the library.
-  const handleConnected = () => {
+
+  const handleConnected = async (videos: JellyfinVideo[]) => {
+    console.log('Saving Jellyfin videos to DB...', videos);
+    await importJellyfinVideos(videos);
     window.location.reload();
   };
 
@@ -76,7 +80,6 @@ export function EmptyState() {
           </div>
 
           <div className="z-10 mt-8 w-full">
-            {/* FIXED: Added onConnected prop */}
             <ConnectJellyfinModal onConnected={handleConnected}>
               <Button className="w-full bg-[#AA5CC3] text-white hover:bg-[#AA5CC3]/90">
                 Connect Server

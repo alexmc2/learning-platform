@@ -1,8 +1,8 @@
-import fs from "node:fs/promises";
-import path from "node:path";
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
-import { HomePageContent } from "@/components/home-page-content";
-import { prisma } from "@/lib/prisma";
+import { HomePageContent } from '@/components/home-page-content';
+import { prisma } from '@/lib/prisma';
 
 export const revalidate = 0;
 
@@ -15,24 +15,51 @@ export default async function Home({
 }: {
   searchParams?: Promise<SearchParams> | SearchParams;
 }) {
-  const rawVideos = await prisma.video.findMany({
-    orderBy: [{ path: "asc" }],
-  });
+  const rawVideos = await prisma.video.findMany(); // Remove orderBy from here
 
   const withSections = await Promise.all(
     rawVideos.map(async (video) => {
       const exists = await fileExists(video.path);
       if (!exists) return null;
+
+      // 1. EXTRACT SECTION LOGIC
+      let section = 'Library';
+
+      // If it's a Jellyfin video (stored as "jellyfin|SECTION|TITLE")
+      if (video.filename.startsWith('jellyfin|')) {
+        const parts = video.filename.split('|');
+        if (parts.length >= 2) {
+          section = parts[1]; // Recover the section name
+        }
+      } else {
+        // Local file logic
+        section = deriveLocalSection(video.path);
+      }
+
       return {
         ...video,
-        section: deriveSection(video.path),
+        section,
       };
-    }),
+    })
   );
 
-  const videos = withSections.filter(
-    (video): video is NonNullable<(typeof withSections)[number]> => Boolean(video),
-  );
+  // 2. FILTER & SORT
+  const videos = withSections
+    .filter((video): video is NonNullable<(typeof withSections)[number]> =>
+      Boolean(video)
+    )
+    .sort((a, b) => {
+      // Sort by Section first
+      const sectionCompare = (a.section || '').localeCompare(
+        b.section || '',
+        undefined,
+        { numeric: true }
+      );
+      if (sectionCompare !== 0) return sectionCompare;
+
+      // Then sort by Title (numeric aware, so "Lesson 2" comes before "Lesson 10")
+      return a.title.localeCompare(b.title, undefined, { numeric: true });
+    });
 
   const resolvedSearchParams = await Promise.resolve(searchParams);
   const requestedId = parseVideoId(resolvedSearchParams?.v);
@@ -59,15 +86,16 @@ export default async function Home({
   );
 }
 
-function deriveSection(filePath: string) {
+function deriveLocalSection(filePath: string) {
   const parts = filePath.split(path.sep).filter(Boolean);
   if (parts.length >= 2) {
     return parts[parts.length - 2];
   }
-  return "Library";
+  return 'Library';
 }
 
 async function fileExists(filePath: string) {
+  if (filePath.startsWith('http')) return true;
   try {
     await fs.access(filePath);
     return true;

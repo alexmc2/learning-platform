@@ -18,7 +18,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +35,26 @@ export interface JellyfinVideo {
 interface ConnectJellyfinModalProps {
   children: React.ReactNode;
   onConnected: (videos: JellyfinVideo[]) => void;
+}
+
+// Extracts the parent folder name from the path (mimicking local import logic)
+function getSectionFromPath(pathString?: string, defaultName = 'General') {
+  if (!pathString) return defaultName;
+
+  // Handle both Windows (\) and Unix (/) separators
+  const normalized = pathString.replace(/\\/g, '/');
+  // Remove trailing slash if present
+  const clean = normalized.replace(/\/$/, '');
+
+  const parts = clean.split('/');
+
+  // If path is "Course/Chapter 1/Video.mp4", parts are [..., "Chapter 1", "Video.mp4"]
+  // We want the second to last item
+  if (parts.length >= 2) {
+    return parts[parts.length - 2];
+  }
+
+  return defaultName;
 }
 
 export function ConnectJellyfinModal({
@@ -87,8 +106,6 @@ export function ConnectJellyfinModal({
     }
   }, [open]);
 
-  // --- Actions ---
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -115,7 +132,6 @@ export function ConnectJellyfinModal({
 
   const handleNavigate = async (item: JellyfinItem) => {
     if (!authData) return;
-    // If it's a folder/series/library, navigate INTO it
     if (
       item.IsFolder ||
       item.Type === 'CollectionFolder' ||
@@ -170,7 +186,7 @@ export function ConnectJellyfinModal({
     if (!authData || !currentParentId) return;
     setLoading(true);
     try {
-      // Fetch RECURSIVELY from the CURRENT location
+      // Fetch videos recursively from the current folder
       const videos = await jellyfinApi.getVideos(
         authData.serverUrl,
         authData.userId,
@@ -178,25 +194,32 @@ export function ConnectJellyfinModal({
         currentParentId
       );
 
-      const mapped = videos.map((item, index) => ({
-        id: index + 1,
-        title: item.Name,
-        completed: item.UserData?.Played || false,
-        duration: item.RunTimeTicks ? item.RunTimeTicks / 10000000 : null,
-        section: breadcrumbs[breadcrumbs.length - 1].name, // Use folder name as section
-        sourceUrl: `${authData.serverUrl}/Videos/${item.Id}/stream?static=true&api_key=${authData.accessToken}`,
-      }));
+      const mapped = videos.map((item, index) => {
+        // Use the actual file path to determine the chapter/section
+        const sectionName = getSectionFromPath(
+          item.Path,
+          breadcrumbs[breadcrumbs.length - 1].name
+        );
+
+        return {
+          id: index + 1,
+          title: item.Name,
+          completed: item.UserData?.Played || false,
+          duration: item.RunTimeTicks ? item.RunTimeTicks / 10000000 : null,
+          section: sectionName,
+          sourceUrl: `${authData.serverUrl}/Videos/${item.Id}/stream?static=true&api_key=${authData.accessToken}`,
+        };
+      });
 
       onConnected(mapped);
       setOpen(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError('Failed to sync this folder.');
     } finally {
       setLoading(false);
     }
   };
-
-  // --- Render ---
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
