@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChevronDown, Circle, Search } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, Search, Trophy } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -54,12 +54,7 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
       <SidebarHeader className="gap-3">
-        <div className="flex items-center justify-between gap-2">
-     
-          <Badge variant="secondary" className="px-2 py-1 text-[11px]">
-            {completedCount}/{videos.length} done
-          </Badge>
-        </div>
+        <ProgressSummary completed={completedCount} total={videos.length} />
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sidebar-foreground/60" />
           <SidebarInput
@@ -71,7 +66,7 @@ export function AppSidebar({
           />
         </div>
       </SidebarHeader>
-    
+
       <SidebarContent className="sidebar-scroll px-2 pb-4">
         <div className="space-y-2">
           {grouped.map(({ section, items, completed }) => {
@@ -153,6 +148,99 @@ export function AppSidebar({
         </div>
       </SidebarContent>
     </Sidebar>
+  );
+}
+
+function ProgressSummary({ completed, total }: { completed: number; total: number }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const progressPercent =
+    total === 0 ? 0 : Math.min(100, Math.round((completed / total) * 100));
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleClick = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen((previous) => !previous)}
+        className="flex w-full items-center gap-3 rounded-lg border border-sidebar-border/80 bg-sidebar px-2.5 py-2 text-left shadow-sm transition hover:border-sidebar-foreground/25 hover:bg-sidebar/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-foreground/30 cursor-pointer"
+      >
+        <div
+          className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+          style={{
+            background: `conic-gradient(#22c55e ${progressPercent}%, rgba(148,163,184,0.5) ${progressPercent}% 100%)`,
+          }}
+        >
+          <div className="absolute inset-[3px] rounded-full border border-sidebar-border/70 bg-sidebar/90 shadow-inner" />
+          <Trophy className="relative h-5 w-5 text-sidebar-foreground/80" />
+        </div>
+        <div className="flex flex-1 items-center justify-between gap-2">
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-semibold text-sidebar-foreground">
+              Your progress
+            </span>
+            <span className="text-xs text-sidebar-foreground/70">
+              {completed}/{total} lessons
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-sm font-bold text-sidebar-foreground">
+            {progressPercent}%
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform text-sidebar-foreground/70",
+                open ? "rotate-180" : "rotate-0",
+              )}
+              aria-hidden
+            />
+          </div>
+        </div>
+      </button>
+      {open ? (
+        <div className="absolute left-0 right-auto top-full z-20 mt-3 w-[min(320px,calc(100vw-2.5rem))]">
+          <div className="relative">
+            <div className="absolute left-10 -top-2 h-4 w-4 rotate-45 rounded-sm border border-sidebar-border/70 bg-sidebar shadow-md" />
+            <div className="rounded-xl border border-sidebar-border/70 bg-sidebar/95 px-4 py-3 text-sidebar-foreground shadow-2xl backdrop-blur supports-[backdrop-filter]:bg-sidebar/85">
+              <p className="text-md font-bold">
+                {completed} of {total} complete.
+              </p>
+              <p className="mt-2 text-sm text-sidebar-foreground/75">
+                {total === 0
+                  ? "Start your first lesson to track progress."
+                  : "Keep going to finish the course and earn your win."}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
