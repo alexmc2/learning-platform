@@ -39,9 +39,15 @@ type VideoPlayerProps = {
   };
   prevId?: number;
   nextId?: number;
+  canTrackProgress?: boolean;
 };
 
-export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
+export function VideoPlayer({
+  video,
+  prevId,
+  nextId,
+  canTrackProgress = false,
+}: VideoPlayerProps) {
   const isRemote = video.path.startsWith('http');
   const streamUrl = isRemote ? video.path : `/api/stream?id=${video.id}`;
   const nextCompletedValue = (!video.completed).toString();
@@ -419,17 +425,25 @@ export function VideoPlayer({ video, prevId, nextId }: VideoPlayerProps) {
           )}
         </div>
 
-        <form action={setVideoCompletion} className="ml-auto">
-          <input type="hidden" name="videoId" value={video.id} />
-          <input type="hidden" name="completed" value={nextCompletedValue} />
-          <Button
-            type="submit"
-            size="lg"
-            variant={video.completed ? 'default' : 'default'}
-          >
-            {video.completed ? 'Mark as Incomplete' : 'Mark as Complete'}
-          </Button>
-        </form>
+        <div className="ml-auto flex flex-col items-end gap-2">
+          <form action={setVideoCompletion}>
+            <input type="hidden" name="videoId" value={video.id} />
+            <input type="hidden" name="completed" value={nextCompletedValue} />
+            <Button
+              type="submit"
+              size="lg"
+              disabled={!canTrackProgress}
+              variant={video.completed ? 'default' : 'default'}
+            >
+              {video.completed ? 'Mark as Incomplete' : 'Mark as Complete'}
+            </Button>
+          </form>
+          {!canTrackProgress ? (
+            <p className="text-xs text-muted-foreground">
+              Log in to track and sync your progress.
+            </p>
+          ) : null}
+        </div>
       </CardFooter>
     </Card>
   );

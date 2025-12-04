@@ -17,18 +17,25 @@ type Video = {
   path: string;
 };
 
+type SessionUser = {
+  id: string;
+  email?: string;
+} | null;
+
 export function HomePageContent({
   videos,
   currentId,
   currentVideo,
   prevId,
   nextId,
+  user,
 }: {
   videos: Video[];
   currentId?: number;
   currentVideo?: Video | null;
   prevId?: number;
   nextId?: number;
+  user: SessionUser;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof document === 'undefined') return true;
@@ -54,7 +61,12 @@ export function HomePageContent({
       <AppSidebar videos={videos} currentId={currentId} />
       <SidebarInset className="flex h-screen w-screen min-w-0 overflow-hidden bg-background text-foreground">
         <div className="flex h-full w-full min-w-0 flex-col">
-          <PageHeader />
+          <PageHeader
+            user={user}
+            videos={videos}
+            showSidebarTrigger
+            showSyncButton
+          />
 
           {/* Main Content Area */}
           <div className="flex flex-1 min-h-0 items-center justify-center overflow-y-auto overflow-x-hidden bg-muted/20">
@@ -65,6 +77,7 @@ export function HomePageContent({
                   video={currentVideo}
                   prevId={prevId}
                   nextId={nextId}
+                  canTrackProgress={Boolean(user)}
                 />
               ) : (
                 <EmptyState />

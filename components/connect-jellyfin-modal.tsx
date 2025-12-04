@@ -26,7 +26,6 @@ import { jellyfinApi, type JellyfinItem } from '@/lib/jellyfin';
 export interface JellyfinVideo {
   id: number;
   title: string;
-  completed: boolean;
   duration: number | null;
   section: string;
   sourceUrl: string;
@@ -204,7 +203,6 @@ export function ConnectJellyfinModal({
         return {
           id: index + 1,
           title: item.Name,
-          completed: item.UserData?.Played || false,
           duration: item.RunTimeTicks ? item.RunTimeTicks / 10000000 : null,
           section: sectionName,
           sourceUrl: `${authData.serverUrl}/Videos/${item.Id}/stream?static=true&api_key=${authData.accessToken}`,

@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  // DO NOT put url or directUrl here anymore
 }
 
 model Video {
@@ -12,8 +12,53 @@ model Video {
   filename  String   @unique
   title     String
   path      String
-  duration  Int      @default(0)
-  completed Boolean  @default(false)
+  duration  Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  courseItems CourseVideo[]
+  progress    VideoProgress[]
+}
+
+model Course {
+  id        Int      @id @default(autoincrement())
+  name      String
+  ownerId   String   @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items CourseVideo[]
+
+  @@unique([ownerId, name])
+  @@index([ownerId])
+}
+
+model CourseVideo {
+  id        Int      @id @default(autoincrement())
+  courseId  Int
+  videoId   Int
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  video  Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, videoId])
+  @@index([videoId])
+}
+
+model VideoProgress {
+  id             Int      @id @default(autoincrement())
+  videoId        Int
+  userId         String   @db.Uuid
+  completed      Boolean  @default(false)
+  secondsWatched Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, userId])
+  @@index([userId])
 }

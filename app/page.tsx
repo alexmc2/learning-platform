@@ -1,8 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import type { Prisma } from '@/lib/generated/prisma/client';
 import { HomePageContent } from '@/components/home-page-content';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/supabase/server';
 
 export const revalidate = 0;
 
@@ -15,7 +17,15 @@ export default async function Home({
 }: {
   searchParams?: Promise<SearchParams> | SearchParams;
 }) {
-  const rawVideos = await prisma.video.findMany(); // Remove orderBy from here
+  const user = await getCurrentUser();
+  const progressInclude = user
+    ? { where: { userId: user.id }, select: { completed: true } }
+    : { select: { completed: true } };
+  const rawVideos = (await prisma.video.findMany({
+    include: { progress: progressInclude },
+  })) as Prisma.VideoGetPayload<{
+    include: { progress: { select: { completed: true } } };
+  }>[];
 
   const withSections = await Promise.all(
     rawVideos.map(async (video) => {
@@ -38,6 +48,8 @@ export default async function Home({
 
       return {
         ...video,
+        completed: user ? video.progress?.[0]?.completed ?? false : false,
+        duration: video.duration ?? null,
         section,
       };
     })
@@ -82,6 +94,14 @@ export default async function Home({
       currentVideo={currentVideo}
       prevId={prevId}
       nextId={nextId}
+      user={
+        user
+          ? {
+              id: user.id,
+              email: user.email ?? undefined,
+            }
+          : null
+      }
     />
   );
 }

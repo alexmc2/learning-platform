@@ -52,6 +52,15 @@ export async function syncLibrary(
 
     const customPath = formData.get('path') as string | null;
     const rawRoot = customPath?.trim() ? customPath.trim() : VIDEO_ROOT;
+
+    if (!rawRoot) {
+      return {
+        ok: false,
+        message:
+          'Please provide a folder path when syncing, or set VIDEO_ROOT in your env.',
+      };
+    }
+
     const root = path.resolve(rawRoot);
 
     console.log(`Scanning directory: "${root}"`);
@@ -159,7 +168,6 @@ interface JellyfinVideo {
   title: string;
   sourceUrl: string;
   duration?: number | null;
-  completed?: boolean;
   section?: string;
 }
 
@@ -177,15 +185,13 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
         update: {
           path: video.sourceUrl,
           title: video.title,
-          duration: video.duration ? Math.round(video.duration) : 0,
-          completed: video.completed ?? false,
+          duration: video.duration ? Math.round(video.duration) : null,
         },
         create: {
           filename: uniqueKey,
           path: video.sourceUrl,
           title: video.title,
-          duration: video.duration ? Math.round(video.duration) : 0,
-          completed: video.completed ?? false,
+          duration: video.duration ? Math.round(video.duration) : null,
         },
       });
     }

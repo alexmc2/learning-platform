@@ -1,14 +1,14 @@
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@/lib/generated/prisma/client';
 
-const prismaClientSingleton = () => {
-  return new PrismaClient();
-};
+const connectionString = process.env.DATABASE_URL;
 
-declare global {
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
+if (!connectionString) {
+  throw new Error('DATABASE_URL is not set');
 }
 
-// export const prisma (Named Export) fixes the import errors in your app
-export const prisma = globalThis.prisma ?? prismaClientSingleton();
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
 
-if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
+export { prisma };
