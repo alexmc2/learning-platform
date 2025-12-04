@@ -31,11 +31,17 @@ export function ConnectLocalModal({ children }: { children: React.ReactNode }) {
   // Close dialog on successful sync
   useEffect(() => {
     if (state.ok && state.message && !isPending && open) {
-      // Optional: Add a toast notification here
       const id = requestAnimationFrame(() => setOpen(false));
       return () => cancelAnimationFrame(id);
     }
   }, [state, isPending, open]);
+
+  // Navigate to player after successful scan
+  useEffect(() => {
+    if (state.ok && state.message && !isPending && mode === 'scan') {
+      window.location.href = '/?promptSave=1&source=local';
+    }
+  }, [state, isPending, mode]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

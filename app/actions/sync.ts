@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 import { VIDEO_ROOT } from '@/lib/constants';
 import { prisma } from '@/lib/prisma';
+import { requireUser } from '@/lib/supabase/server';
 
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.mkv', '.webm']);
 
@@ -47,6 +48,14 @@ export type SyncResult = {
   ok: boolean;
   message: string | null;
 };
+
+export async function clearAllVideos() {
+  await requireUser();
+  const deleted = await prisma.video.deleteMany({});
+  revalidatePath('/');
+  revalidatePath('/courses');
+  console.log(`Cleared ${deleted.count} videos from library`);
+}
 
 export async function syncLibrary(
   _prevState: SyncResult,
@@ -255,7 +264,8 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
     const paths: string[] = [];
 
     for (const video of videos) {
-      const uniqueKey = `jellyfin|${video.id}`;
+      const sectionName = video.section || 'General';
+      const uniqueKey = `jellyfin|${sectionName}|${video.id}`;
       keepKeys.add(uniqueKey);
       paths.push(video.sourceUrl);
 
@@ -286,6 +296,7 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
     }
 
     revalidatePath('/');
+    revalidatePath('/courses');
     return { ok: true };
   } catch (error) {
     console.error('Jellyfin Import Error:', error);

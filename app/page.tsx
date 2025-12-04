@@ -10,6 +10,7 @@ export const revalidate = 0;
 
 type SearchParams = {
   v?: string | string[];
+  promptSave?: string | string[];
 };
 
 export default async function Home({
@@ -100,8 +101,9 @@ export default async function Home({
       prevId={prevId}
       nextId={nextId}
       showSyncButton={canSync}
-      hasSavedCourses={hasSavedCourses}
       showImportButton={showImportButton}
+      promptSave={resolvedSearchParams?.promptSave === '1'}
+      hasSavedCourses={hasSavedCourses}
       user={
         user
           ? {

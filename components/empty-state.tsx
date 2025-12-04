@@ -42,7 +42,7 @@ export function EmptyState() {
   const handleConnected = async (videos: JellyfinVideo[]) => {
     console.log('Saving Jellyfin videos to DB...', videos);
     await importJellyfinVideos(videos);
-    window.location.reload();
+    window.location.href = '/?promptSave=1&source=jellyfin';
   };
 
   return (

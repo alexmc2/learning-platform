@@ -30,8 +30,9 @@ export function HomePageContent({
   nextId,
   user,
   showSyncButton = false,
-  hasSavedCourses = false,
   showImportButton = true,
+  promptSave = false,
+  hasSavedCourses = false,
 }: {
   videos: Video[];
   currentId?: number;
@@ -40,8 +41,9 @@ export function HomePageContent({
   nextId?: number;
   user: SessionUser;
   showSyncButton?: boolean;
-  hasSavedCourses?: boolean;
   showImportButton?: boolean;
+  promptSave?: boolean;
+  hasSavedCourses?: boolean;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof document === 'undefined') return true;
@@ -72,8 +74,9 @@ export function HomePageContent({
             videos={videos}
             showSidebarTrigger
             showSyncButton={showSyncButton}
-            hasSavedCourses={hasSavedCourses}
             showImportButton={showImportButton}
+            promptSaveModal={promptSave}
+            hasSavedCourses={hasSavedCourses}
           />
 
           {/* Main Content Area */}

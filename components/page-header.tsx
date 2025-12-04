@@ -5,6 +5,7 @@ import { SyncButton } from '@/components/sync-button';
 import { SaveCourseModal } from '@/components/save-course-modal';
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { LogoutButton } from '@/components/auth/logout-button';
+import { clearAllVideos } from '@/app/actions/sync';
 
 import Link from 'next/link';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -20,10 +21,11 @@ type PageHeaderProps = {
   videos?: { id: number; title: string; section?: string }[];
   showSidebarTrigger?: boolean;
   showSyncButton?: boolean;
-  hasSavedCourses?: boolean;
   onCoursesPage?: boolean;
   showImportButton?: boolean;
   onImportPage?: boolean;
+  promptSaveModal?: boolean;
+  hasSavedCourses?: boolean;
 };
 
 export function PageHeader({
@@ -34,6 +36,8 @@ export function PageHeader({
   onCoursesPage = false,
   showImportButton = false,
   onImportPage = false,
+  promptSaveModal = false,
+  hasSavedCourses = false,
 }: PageHeaderProps) {
   return (
     <header className="sticky top-0 z-10 flex shrink-0 flex-col gap-3 border-b border-border/60 bg-white/95 px-4 py-4 backdrop-blur dark:bg-background lg:px-8">
@@ -50,7 +54,14 @@ export function PageHeader({
           {showSyncButton ? <SyncButton /> : null}
           {user ? (
             <>
-              {videos.length > 0 ? <SaveCourseModal videos={videos} /> : null}
+              {videos.length > 0 && (promptSaveModal || !hasSavedCourses) ? (
+                <SaveCourseModal videos={videos} forceOpen={promptSaveModal} />
+              ) : null}
+              <form action={async () => clearAllVideos()}>
+                <Button variant="outline" size="sm" type="submit">
+                  Clear library
+                </Button>
+              </form>
               {showImportButton && !onImportPage ? (
                 <Button asChild variant="outline" size="sm">
                   <Link href="/import">Import course</Link>

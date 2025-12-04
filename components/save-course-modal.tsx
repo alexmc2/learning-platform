@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 type SaveCourseModalProps = {
   videos: { id: number; title: string; section?: string }[];
   disabled?: boolean;
+  forceOpen?: boolean;
 };
 
 const initialState: SaveCourseState = {
@@ -27,7 +28,11 @@ const initialState: SaveCourseState = {
   message: '',
 };
 
-export function SaveCourseModal({ videos, disabled }: SaveCourseModalProps) {
+export function SaveCourseModal({
+  videos,
+  disabled,
+  forceOpen = false,
+}: SaveCourseModalProps) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(saveCourse, initialState);
   const videoIds = useMemo(() => videos.map((video) => video.id), [videos]);
@@ -46,6 +51,12 @@ export function SaveCourseModal({ videos, disabled }: SaveCourseModalProps) {
   useEffect(() => {
     setName(defaultName);
   }, [defaultName]);
+
+  useEffect(() => {
+    if (forceOpen && videos.length > 0 && !disabled) {
+      setOpen(true);
+    }
+  }, [forceOpen, videos.length, disabled]);
 
   useEffect(() => {
     if (state.ok && state.message && !isPending) {
