@@ -1,13 +1,10 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+  // DO NOT put url or directUrl here anymore
 }
 
 model Video {
@@ -15,7 +12,8 @@ model Video {
   filename  String   @unique
   title     String
   path      String
+  duration  Int      @default(0)
   completed Boolean  @default(false)
-  duration  Int?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
