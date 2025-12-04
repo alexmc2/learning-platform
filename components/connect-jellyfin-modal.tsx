@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { jellyfinApi, type JellyfinItem } from '@/lib/jellyfin';
 
 export interface JellyfinVideo {
-  id: number;
+  id: string;
   title: string;
   duration: number | null;
   section: string;
@@ -193,7 +193,7 @@ export function ConnectJellyfinModal({
         currentParentId
       );
 
-      const mapped = videos.map((item, index) => {
+      const mapped = videos.map((item) => {
         // Use the actual file path to determine the chapter/section
         const sectionName = getSectionFromPath(
           item.Path,
@@ -201,7 +201,7 @@ export function ConnectJellyfinModal({
         );
 
         return {
-          id: index + 1,
+          id: `${authData.serverUrl}|${item.Id}`,
           title: item.Name,
           duration: item.RunTimeTicks ? item.RunTimeTicks / 10000000 : null,
           section: sectionName,

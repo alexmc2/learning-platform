@@ -438,11 +438,6 @@ export function VideoPlayer({
               {video.completed ? 'Mark as Incomplete' : 'Mark as Complete'}
             </Button>
           </form>
-          {!canTrackProgress ? (
-            <p className="text-xs text-muted-foreground">
-              Log in to track and sync your progress.
-            </p>
-          ) : null}
         </div>
       </CardFooter>
     </Card>

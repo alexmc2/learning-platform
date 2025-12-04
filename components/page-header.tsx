@@ -31,7 +31,6 @@ export function PageHeader({
   videos = [],
   showSidebarTrigger = false,
   showSyncButton = false,
-  hasSavedCourses = false,
   onCoursesPage = false,
   showImportButton = false,
   onImportPage = false,
@@ -51,9 +50,7 @@ export function PageHeader({
           {showSyncButton ? <SyncButton /> : null}
           {user ? (
             <>
-              {videos.length > 0 && !hasSavedCourses ? (
-                <SaveCourseModal videos={videos} />
-              ) : null}
+              {videos.length > 0 ? <SaveCourseModal videos={videos} /> : null}
               {showImportButton && !onImportPage ? (
                 <Button asChild variant="outline" size="sm">
                   <Link href="/import">Import course</Link>

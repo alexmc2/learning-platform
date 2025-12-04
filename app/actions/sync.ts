@@ -38,6 +38,11 @@ async function collectVideoFiles(dir: string): Promise<string[]> {
   return files.flat();
 }
 
+function localKeyForPath(absolutePath: string) {
+  // Stable per file on disk to avoid collisions between different courses/folders.
+  return `local|${path.resolve(absolutePath)}`;
+}
+
 export type SyncResult = {
   ok: boolean;
   message: string | null;
@@ -50,8 +55,11 @@ export async function syncLibrary(
   try {
     console.log('--- SYNC STARTED ---');
 
+    const mode = formData.get('mode') === 'remove' ? 'remove' : 'scan';
+    const replaceExisting = formData.get('replace') === 'true';
     const customPath = formData.get('path') as string | null;
-    const rawRoot = customPath?.trim() ? customPath.trim() : VIDEO_ROOT;
+    const usedCustomPath = Boolean(customPath?.trim());
+    const rawRoot = usedCustomPath ? customPath!.trim() : VIDEO_ROOT;
 
     if (!rawRoot) {
       return {
@@ -75,6 +83,25 @@ export async function syncLibrary(
       };
     }
 
+    if (mode === 'remove') {
+      const deleted = await prisma.video.deleteMany({
+        where: {
+          path: { startsWith: root },
+          NOT: { path: { startsWith: 'http' } },
+        },
+      });
+
+      revalidatePath('/');
+      revalidatePath('/courses');
+
+      return {
+        ok: true,
+        message: `Removed ${deleted.count} video${
+          deleted.count === 1 ? '' : 's'
+        } under "${path.basename(root)}".`,
+      };
+    }
+
     const videoPaths = await collectVideoFiles(root);
     console.log(`Found ${videoPaths.length} files on disk.`);
 
@@ -83,7 +110,10 @@ export async function syncLibrary(
     }
 
     const foundFilenames = new Set(
-      videoPaths.map((absolutePath) => path.basename(absolutePath))
+      videoPaths.map((absolutePath) => localKeyForPath(absolutePath))
+    );
+    const resolvedPaths = videoPaths.map((absolutePath) =>
+      path.resolve(absolutePath)
     );
 
     // 2. Log before writing to DB
@@ -91,8 +121,8 @@ export async function syncLibrary(
 
     await Promise.all(
       videoPaths.map(async (absolutePath) => {
-        const filename = path.basename(absolutePath);
-        const title = titleFromFilename(filename);
+        const filename = localKeyForPath(absolutePath);
+        const title = titleFromFilename(path.basename(absolutePath));
 
         await prisma.video.upsert({
           where: { filename },
@@ -112,26 +142,48 @@ export async function syncLibrary(
     console.log('Database Upsert Complete.');
 
     const existing = await prisma.video.findMany({
-      select: { filename: true },
+      select: { filename: true, path: true },
     });
 
     // 3. Check what's currently in the DB
     console.log(`Total videos currently in DB: ${existing.length}`);
 
-    const missingFilenames = existing
-      .map((video) => video.filename)
-      .filter((filename) => !foundFilenames.has(filename));
-
-    let removedCount = 0;
-    if (missingFilenames.length > 0) {
-      removedCount = missingFilenames.length;
-      console.log(`Removing ${removedCount} missing videos from DB.`);
+    // Clean up any stale rows pointing at the same paths but using old keys.
+    if (resolvedPaths.length > 0) {
       await prisma.video.deleteMany({
-        where: { filename: { in: missingFilenames } },
+        where: {
+          path: { in: resolvedPaths },
+          filename: { notIn: Array.from(foundFilenames) },
+        },
       });
     }
 
+    // Only consider removals for local files inside the scanned root.
+    let removedCount = 0;
+    if (replaceExisting) {
+      const removable = existing.filter((video) => {
+        if (video.path.startsWith('http')) return false;
+        const resolved = path.resolve(video.path);
+        return resolved === root || resolved.startsWith(`${root}${path.sep}`);
+      });
+
+      const missingFilenames = removable
+        .map((video) => video.filename)
+        .filter((filename) => !foundFilenames.has(filename));
+
+      if (missingFilenames.length > 0) {
+        removedCount = missingFilenames.length;
+        console.log(`Removing ${removedCount} missing videos from DB.`);
+        await prisma.video.deleteMany({
+          where: { filename: { in: missingFilenames } },
+        });
+      }
+    } else {
+      console.log('Replace not selected; keeping existing local entries.');
+    }
+
     revalidatePath('/');
+    revalidatePath('/courses');
     console.log('--- SYNC FINISHED SUCCESSFULLY ---');
 
     if (videoPaths.length === 0 && removedCount === 0) {
@@ -165,6 +217,7 @@ export async function syncLibrary(
 }
 
 interface JellyfinVideo {
+  id: string;
   title: string;
   sourceUrl: string;
   duration?: number | null;
@@ -175,10 +228,36 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
   console.log('--- IMPORTING JELLYFIN VIDEOS ---');
 
   try {
+    if (videos.length === 0) {
+      return { ok: false };
+    }
+
+    const parseServer = (id: string) => {
+      const idx = id.indexOf('|');
+      return idx === -1 ? null : id.slice(0, idx);
+    };
+
+    const serverUrl = parseServer(videos[0].id);
+
+    if (serverUrl) {
+      const prefix = `jellyfin|${serverUrl}|`;
+      await prisma.video.deleteMany({
+        where: {
+          OR: [
+            { filename: { startsWith: prefix } },
+            { path: { startsWith: serverUrl } },
+          ],
+        },
+      });
+    }
+
+    const keepKeys = new Set<string>();
+    const paths: string[] = [];
+
     for (const video of videos) {
-      // Encode the section in the unique key so we can group videos without a schema change.
-      const sectionName = video.section || 'General';
-      const uniqueKey = `jellyfin|${sectionName}|${video.title}`;
+      const uniqueKey = `jellyfin|${video.id}`;
+      keepKeys.add(uniqueKey);
+      paths.push(video.sourceUrl);
 
       await prisma.video.upsert({
         where: { filename: uniqueKey },
@@ -192,6 +271,16 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
           path: video.sourceUrl,
           title: video.title,
           duration: video.duration ? Math.round(video.duration) : null,
+        },
+      });
+    }
+
+    // Remove stale rows for the same items if the key format changed.
+    if (paths.length > 0) {
+      await prisma.video.deleteMany({
+        where: {
+          path: { in: paths },
+          filename: { notIn: Array.from(keepKeys) },
         },
       });
     }

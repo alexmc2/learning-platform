@@ -25,6 +25,8 @@ export function ConnectLocalModal({ children }: { children: React.ReactNode }) {
     syncLibrary,
     initialState
   );
+  const [replace, setReplace] = useState(true);
+  const [mode, setMode] = useState<'scan' | 'remove'>('scan');
 
   // Close dialog on successful sync
   useEffect(() => {
@@ -42,7 +44,9 @@ export function ConnectLocalModal({ children }: { children: React.ReactNode }) {
         <DialogHeader>
           <DialogTitle>Scan Local Library</DialogTitle>
           <DialogDescription>
-            Enter the absolute path to your video folder on the server.
+            Enter the absolute path to your video folder on the server. The scan
+            is recursive, so point this at a single course folder to avoid
+            pulling in your entire library.
           </DialogDescription>
         </DialogHeader>
         <form action={formAction} className="grid gap-4 py-4">
@@ -62,6 +66,55 @@ export function ConnectLocalModal({ children }: { children: React.ReactNode }) {
             </p>
           </div>
 
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-medium">Mode</legend>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex items-center gap-2 rounded-md border p-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  value="scan"
+                  checked={mode === 'scan'}
+                  onChange={() => setMode('scan')}
+                />
+                <span className="text-sm">Scan & add</span>
+              </label>
+              <label className="flex items-center gap-2 rounded-md border p-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  value="remove"
+                  checked={mode === 'remove'}
+                  onChange={() => setMode('remove')}
+                />
+                <span className="text-sm">Remove entries</span>
+              </label>
+            </div>
+          </fieldset>
+
+          {mode === 'scan' ? (
+            <label className="flex items-center justify-between rounded-md border p-3 cursor-pointer gap-3">
+              <div>
+                <p className="text-sm font-medium">Replace existing entries</p>
+                <p className="text-muted-foreground text-xs">
+                  Remove any local videos already tracked under this folder
+                  before reimporting.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                name="replace"
+                value="true"
+                checked={replace}
+                onChange={(e) => setReplace(e.target.checked)}
+                className="h-4 w-4"
+              />
+              {!replace && <input type="hidden" name="replace" value="false" />}
+            </label>
+          ) : (
+            <input type="hidden" name="replace" value="false" />
+          )}
+
           {state.message && (
             <p
               className={`text-sm ${
@@ -75,7 +128,13 @@ export function ConnectLocalModal({ children }: { children: React.ReactNode }) {
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isPending ? 'Scanning...' : 'Start Scan'}
+              {isPending
+                ? mode === 'remove'
+                  ? 'Removing...'
+                  : 'Scanning...'
+                : mode === 'remove'
+                  ? 'Remove entries'
+                  : 'Start scan'}
             </Button>
           </DialogFooter>
         </form>
