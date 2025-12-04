@@ -21,6 +21,9 @@ type PageHeaderProps = {
   showSidebarTrigger?: boolean;
   showSyncButton?: boolean;
   hasSavedCourses?: boolean;
+  onCoursesPage?: boolean;
+  showImportButton?: boolean;
+  onImportPage?: boolean;
 };
 
 export function PageHeader({
@@ -29,6 +32,9 @@ export function PageHeader({
   showSidebarTrigger = false,
   showSyncButton = false,
   hasSavedCourses = false,
+  onCoursesPage = false,
+  showImportButton = false,
+  onImportPage = false,
 }: PageHeaderProps) {
   return (
     <header className="sticky top-0 z-10 flex shrink-0 flex-col gap-3 border-b border-border/60 bg-white/95 px-4 py-4 backdrop-blur dark:bg-background lg:px-8">
@@ -48,13 +54,31 @@ export function PageHeader({
               {videos.length > 0 && !hasSavedCourses ? (
                 <SaveCourseModal videos={videos} />
               ) : null}
-              <Button asChild variant="default" size="sm">
-                <Link href="/courses">My courses</Link>
-              </Button>
+              {showImportButton && !onImportPage ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/import">Import course</Link>
+                </Button>
+              ) : null}
+              {onCoursesPage ? (
+                <Button asChild variant="default" size="sm">
+                  <Link href="/">Back to course</Link>
+                </Button>
+              ) : (
+                <Button asChild variant="default" size="sm">
+                  <Link href="/courses">My courses</Link>
+                </Button>
+              )}
               <LogoutButton />
             </>
           ) : (
-            <AuthDialog />
+            <>
+              {showImportButton && !onImportPage ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/import">Import course</Link>
+                </Button>
+              ) : null}
+              <AuthDialog />
+            </>
           )}
           <ThemeToggle />
         </div>

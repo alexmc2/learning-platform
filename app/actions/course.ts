@@ -81,3 +81,48 @@ function parseIds(value: FormDataEntryValue | null): number[] {
     return [];
   }
 }
+
+export async function resetCourseProgress(formData: FormData) {
+  const user = await requireUser();
+  const courseId = Number(formData.get("courseId"));
+
+  if (!Number.isInteger(courseId)) {
+    throw new Error("Invalid course id");
+  }
+
+  const videos = await prisma.courseVideo.findMany({
+    where: {
+      course: { id: courseId, ownerId: user.id },
+    },
+    select: { videoId: true },
+  });
+
+  const videoIds = videos.map((item) => item.videoId);
+  if (videoIds.length > 0) {
+    await prisma.videoProgress.deleteMany({
+      where: {
+        userId: user.id,
+        videoId: { in: videoIds },
+      },
+    });
+  }
+
+  revalidatePath("/courses");
+  revalidatePath("/");
+}
+
+export async function deleteCourse(formData: FormData) {
+  const user = await requireUser();
+  const courseId = Number(formData.get("courseId"));
+
+  if (!Number.isInteger(courseId)) {
+    throw new Error("Invalid course id");
+  }
+
+  await prisma.course.delete({
+    where: { id: courseId, ownerId: user.id },
+  });
+
+  revalidatePath("/courses");
+  revalidatePath("/");
+}

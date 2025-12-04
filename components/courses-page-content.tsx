@@ -1,17 +1,10 @@
 import Link from 'next/link';
-import { CheckCircle2, Clock, Play } from 'lucide-react';
 
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { CourseCard } from '@/components/course-card';
 
 type SessionUser = { id: string; email?: string } | null;
 
@@ -33,7 +26,7 @@ export function CoursesPageContent({
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-muted/10">
-      <PageHeader user={user} videos={[]} />
+      <PageHeader user={user} videos={[]} onCoursesPage showImportButton />
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -41,11 +34,6 @@ export function CoursesPageContent({
               Saved Courses
             </h2>
           </div>
-          {user ? (
-            <Button asChild variant="default">
-              <Link href="/">Back to course</Link>
-            </Button>
-          ) : null}
         </div>
 
         {!user ? (
@@ -55,80 +43,12 @@ export function CoursesPageContent({
         ) : (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {courses.map((course) => (
-              <CourseCard key={course.id} course={course} />
+              <CourseCard key={course.id} {...course} />
             ))}
           </div>
         )}
       </main>
     </div>
-  );
-}
-
-function CourseCard({ course }: { course: CourseSummary }) {
-  const progressPercent =
-    course.totalLessons === 0
-      ? 0
-      : Math.round((course.completedLessons / course.totalLessons) * 100);
-
-  return (
-    <Card className="flex h-full flex-col border border-border/70 bg-card shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between gap-3 text-lg">
-          <span className="truncate">{course.name}</span>
-        </CardTitle>
-        <span className="text-sm font-normal text-foreground/80">
-          {course.completedLessons}/{course.totalLessons} complete
-        </span>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="h-2 rounded-full bg-muted">
-          <div
-            className="h-2 rounded-full bg-primary transition-all"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-
-        <div className="space-y-2 text-sm text-foreground/80">
-          {course.previewTitles.slice(0, 3).map((title, index) => (
-            <div key={title} className="flex items-center gap-2">
-              <CheckCircle2
-                className={cn(
-                  'h-4 w-4',
-                  index < course.completedLessons
-                    ? 'text-emerald-500'
-                    : 'text-foreground/80'
-                )}
-              />
-              <span className="truncate">{title}</span>
-            </div>
-          ))}
-          {course.previewTitles.length === 0 ? (
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-foreground/80" />
-              <span className="text-sm">No lessons in this course yet.</span>
-            </div>
-          ) : null}
-        </div>
-      </CardContent>
-      <CardFooter className="flex items-center justify-between">
-        <div className="text-sm text-foreground/80">
-          Progress: {progressPercent}% complete
-        </div>
-        <Button
-          asChild
-          size="sm"
-          disabled={!course.nextVideoId}
-          className="gap-2"
-        >
-          <Link href={course.nextVideoId ? `/?v=${course.nextVideoId}` : '#'}>
-            <Play className="h-4 w-4" />
-            {course.completedLessons === course.totalLessons
-              ? 'Review'
-              : 'Resume'}
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
   );
 }
 

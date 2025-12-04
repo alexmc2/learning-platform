@@ -30,6 +30,7 @@ export default async function Home({
   const hasSavedCourses = user
     ? (await prisma.course.count({ where: { ownerId: user.id } })) > 0
     : false;
+  const showImportButton = true;
 
   const withSections = await Promise.all(
     rawVideos.map(async (video) => {
@@ -100,6 +101,7 @@ export default async function Home({
       nextId={nextId}
       showSyncButton={canSync}
       hasSavedCourses={hasSavedCourses}
+      showImportButton={showImportButton}
       user={
         user
           ? {
