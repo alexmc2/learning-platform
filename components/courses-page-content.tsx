@@ -1,11 +1,17 @@
-import Link from "next/link";
-import { CheckCircle2, Clock, Play } from "lucide-react";
+import Link from 'next/link';
+import { CheckCircle2, Clock, Play } from 'lucide-react';
 
-import { AuthDialog } from "@/components/auth/auth-dialog";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { AuthDialog } from '@/components/auth/auth-dialog';
+import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 type SessionUser = { id: string; email?: string } | null;
 
@@ -27,18 +33,17 @@ export function CoursesPageContent({
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-muted/10">
-      <PageHeader user={user} videos={[]} backHref="/" />
+      <PageHeader user={user} videos={[]} />
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-semibold leading-tight">My courses</h2>
-            <p className="text-muted-foreground">
-              Saved Courses.
-            </p>
+            <h2 className="text-3xl font-semibold leading-tight">
+              Saved Courses
+            </h2>
           </div>
           {user ? (
-            <Button asChild variant="outline">
-              <Link href="/">Back to library</Link>
+            <Button asChild variant="default">
+              <Link href="/">Back to course</Link>
             </Button>
           ) : null}
         </div>
@@ -66,14 +71,14 @@ function CourseCard({ course }: { course: CourseSummary }) {
       : Math.round((course.completedLessons / course.totalLessons) * 100);
 
   return (
-    <Card className="flex h-full flex-col border border-border/70 bg-card/80">
+    <Card className="flex h-full flex-col border border-border/70 bg-card shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-3 text-lg">
           <span className="truncate">{course.name}</span>
-          <span className="text-sm font-normal text-muted-foreground">
-            {course.completedLessons}/{course.totalLessons} complete
-          </span>
         </CardTitle>
+        <span className="text-sm font-normal text-foreground/80">
+          {course.completedLessons}/{course.totalLessons} complete
+        </span>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="h-2 rounded-full bg-muted">
@@ -83,13 +88,15 @@ function CourseCard({ course }: { course: CourseSummary }) {
           />
         </div>
 
-        <div className="space-y-2 text-sm text-muted-foreground">
+        <div className="space-y-2 text-sm text-foreground/80">
           {course.previewTitles.slice(0, 3).map((title, index) => (
             <div key={title} className="flex items-center gap-2">
               <CheckCircle2
                 className={cn(
-                  "h-4 w-4",
-                  index < course.completedLessons ? "text-emerald-500" : "text-muted-foreground",
+                  'h-4 w-4',
+                  index < course.completedLessons
+                    ? 'text-emerald-500'
+                    : 'text-foreground/80'
                 )}
               />
               <span className="truncate">{title}</span>
@@ -97,14 +104,14 @@ function CourseCard({ course }: { course: CourseSummary }) {
           ))}
           {course.previewTitles.length === 0 ? (
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-4 w-4 text-foreground/80" />
               <span className="text-sm">No lessons in this course yet.</span>
             </div>
           ) : null}
         </div>
       </CardContent>
       <CardFooter className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-foreground/80">
           Progress: {progressPercent}% complete
         </div>
         <Button
@@ -116,8 +123,8 @@ function CourseCard({ course }: { course: CourseSummary }) {
           <Link href={course.nextVideoId ? `/?v=${course.nextVideoId}` : '#'}>
             <Play className="h-4 w-4" />
             {course.completedLessons === course.totalLessons
-              ? "Review"
-              : "Resume"}
+              ? 'Review'
+              : 'Resume'}
           </Link>
         </Button>
       </CardFooter>
@@ -130,7 +137,7 @@ function LoginPrompt() {
     <Card className="border border-border/70 bg-card/70">
       <CardContent className="flex flex-col gap-4 p-6">
         <h3 className="text-lg font-semibold">Log in to see your courses</h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-foreground/80">
           Sign in with Supabase to view and sync saved courses and progress.
         </p>
         <AuthDialog
@@ -150,8 +157,9 @@ function EmptyCourses() {
     <Card className="border border-dashed border-border/70 bg-card/70">
       <CardContent className="flex flex-col gap-3 p-6">
         <h3 className="text-lg font-semibold">No saved courses yet</h3>
-        <p className="text-sm text-muted-foreground">
-          Save a course from the library or Jellyfin import and it will appear here with your progress.
+        <p className="text-sm text-foreground/80">
+          Save a course from the library or Jellyfin import and it will appear
+          here with your progress.
         </p>
         <Button asChild variant="secondary" size="sm" className="self-start">
           <Link href="/">Browse videos</Link>

@@ -20,7 +20,7 @@ type PageHeaderProps = {
   videos?: { id: number; title: string; section?: string }[];
   showSidebarTrigger?: boolean;
   showSyncButton?: boolean;
-  backHref?: string;
+  hasSavedCourses?: boolean;
 };
 
 export function PageHeader({
@@ -28,7 +28,7 @@ export function PageHeader({
   videos = [],
   showSidebarTrigger = false,
   showSyncButton = false,
-  backHref,
+  hasSavedCourses = false,
 }: PageHeaderProps) {
   return (
     <header className="sticky top-0 z-10 flex shrink-0 flex-col gap-3 border-b border-border/60 bg-white/95 px-4 py-4 backdrop-blur dark:bg-background lg:px-8">
@@ -39,24 +39,16 @@ export function PageHeader({
             <h1 className="text-3xl font-semibold tracking-tight">
               Learning Platform
             </h1>
-            {backHref ? (
-              <p className="text-sm text-muted-foreground">
-                Manage saved courses.
-              </p>
-            ) : null}
           </div>
-          {backHref ? (
-            <Button asChild variant="outline" size="sm" className="ml-2">
-              <Link href={backHref}>Back to library</Link>
-            </Button>
-          ) : null}
         </div>
         <div className="flex items-center gap-3">
           {showSyncButton ? <SyncButton /> : null}
           {user ? (
             <>
-              {videos.length > 0 ? <SaveCourseModal videos={videos} /> : null}
-              <Button asChild variant="secondary" size="sm">
+              {videos.length > 0 && !hasSavedCourses ? (
+                <SaveCourseModal videos={videos} />
+              ) : null}
+              <Button asChild variant="default" size="sm">
                 <Link href="/courses">My courses</Link>
               </Button>
               <LogoutButton />

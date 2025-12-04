@@ -26,6 +26,10 @@ export default async function Home({
   })) as Prisma.VideoGetPayload<{
     include: { progress: { select: { completed: true } } };
   }>[];
+  const canSync = Boolean(process.env.VIDEO_ROOT);
+  const hasSavedCourses = user
+    ? (await prisma.course.count({ where: { ownerId: user.id } })) > 0
+    : false;
 
   const withSections = await Promise.all(
     rawVideos.map(async (video) => {
@@ -94,6 +98,8 @@ export default async function Home({
       currentVideo={currentVideo}
       prevId={prevId}
       nextId={nextId}
+      showSyncButton={canSync}
+      hasSavedCourses={hasSavedCourses}
       user={
         user
           ? {
