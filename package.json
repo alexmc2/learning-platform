@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "prebuild": "npm run prisma:generate",
     "start": "next start",
     "lint": "eslint",
     "prisma:generate": "prisma generate --config prisma.config.ts && tsc -p tsconfig.prisma-client.json"
