@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { Geist_Mono, Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,7 +34,10 @@ export default async function RootLayout({
   return (
     <html lang="en" className={initialTheme === "dark" ? "dark" : undefined}>
       <body className={`${inter.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased font-sans`}>
-        <ThemeProvider initialTheme={initialTheme}>{children}</ThemeProvider>
+        <ThemeProvider initialTheme={initialTheme}>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -260,22 +260,9 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
     };
 
     const serverUrl = parseServer(videos[0].id);
-
-    if (serverUrl) {
-      const prefix = `jellyfin|${serverUrl}|`;
-      await prisma.video.deleteMany({
-        where: {
-          ownerId: user.id,
-          OR: [
-            { filename: { startsWith: prefix } },
-            { path: { startsWith: serverUrl } },
-          ],
-        },
-      });
-    }
-
     const keepKeys = new Set<string>();
     const paths: string[] = [];
+    const keepKeyList = () => Array.from(keepKeys);
 
     for (const video of videos) {
       const sectionName = video.section || 'General';
@@ -305,13 +292,29 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
       });
     }
 
+    const keepKeysArray = keepKeyList();
+
+    // Remove stale rows for this Jellyfin server that are no longer present.
+    if (serverUrl) {
+      const prefix = `jellyfin|${serverUrl}|`;
+      await prisma.video.deleteMany({
+        where: {
+          ownerId: user.id,
+          AND: [
+            { filename: { startsWith: prefix } },
+            { filename: { notIn: keepKeysArray } },
+          ],
+        },
+      });
+    }
+
     // Remove stale rows for the same items if the key format changed.
     if (paths.length > 0) {
       await prisma.video.deleteMany({
         where: {
           ownerId: user.id,
           path: { in: paths },
-          filename: { notIn: Array.from(keepKeys) },
+          filename: { notIn: keepKeysArray },
         },
       });
     }

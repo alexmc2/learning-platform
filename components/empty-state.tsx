@@ -1,5 +1,6 @@
-'use client';
+"use client";
 
+import { useState } from "react";
 import { HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,6 +9,8 @@ import {
   ConnectJellyfinModal,
   type JellyfinVideo,
 } from '@/components/connect-jellyfin-modal';
+import { ThemedBounceLoader } from "@/components/themed-bounce-loader";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { importJellyfinVideos } from '@/app/actions/sync'; 
 
@@ -38,15 +41,48 @@ function YouTubeLogo({ className }: { className?: string }) {
 }
 
 export function EmptyState() {
+  const [isImporting, setIsImporting] = useState(false);
+  const { toast } = useToast();
 
   const handleConnected = async (videos: JellyfinVideo[]) => {
-    console.log('Saving Jellyfin videos to DB...', videos);
-    await importJellyfinVideos(videos);
-    window.location.href = '/?promptSave=1&source=jellyfin';
+    if (!videos.length) return;
+
+    setIsImporting(true);
+
+    try {
+      const result = await importJellyfinVideos(videos);
+      if (!result?.ok) {
+        throw new Error('Failed to import videos');
+      }
+      window.location.href = '/?promptSave=1&source=jellyfin';
+    } catch (error) {
+      console.error('Jellyfin import failed', error);
+      toast({
+        title: "Import failed",
+        description: "Something went wrong while importing your videos. Please try again.",
+        variant: "destructive",
+      });
+      setIsImporting(false);
+    }
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center gap-12 px-6 py-10">
+    <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center justify-center gap-12 px-6 py-10">
+      {isImporting ? (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-3xl bg-background/90 backdrop-blur-sm">
+          <ThemedBounceLoader
+            size={72}
+            ariaLabel="Importing videos"
+            dataTestid="jellyfin-import-loader"
+          />
+          <div className="text-center space-y-1">
+            <p className="text-base font-semibold">Importing your videos…</p>
+            <p className="text-sm text-muted-foreground">
+              Hang tight while we save them to your library.
+            </p>
+          </div>
+        </div>
+      ) : null}
       <div className="text-center space-y-4 max-w-lg">
         <h2 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
           Ready to Learn?
@@ -92,13 +128,13 @@ export function EmptyState() {
         <Card
           className={cn(
             'group relative flex flex-col items-center justify-between overflow-hidden border-2 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
-            'border-muted bg-card hover:border-blue-500/50 dark:hover:border-blue-500/70'
+            'border-muted bg-card hover:border-blue-600/50 dark:hover:border-blue-600/70'
           )}
         >
-          <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          <div className="absolute inset-0 bg-linear-to-br from-blue-600/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
           <div className="z-10 flex flex-col items-center gap-4 text-center">
-            <div className="rounded-2xl bg-blue-500/10 p-4 text-blue-500 ring-1 ring-blue-500/20 transition-all duration-300 group-hover:bg-blue-500 group-hover:text-white group-hover:ring-blue-500">
+            <div className="rounded-2xl bg-blue-600/10 p-4 text-blue-600 ring-1 ring-blue-600/20 transition-all duration-300 group-hover:bg-blue-600 group-hover:text-white group-hover:ring-blue-600">
               <HardDrive className="h-8 w-8" />
             </div>
             <div className="space-y-1">
@@ -114,7 +150,7 @@ export function EmptyState() {
 
           <div className="z-10 mt-8 w-full">
             <ConnectLocalModal>
-              <Button className="w-full bg-blue-600 text-white hover:bg-blue-700">
+              <Button className="w-full bg-blue-700 text-white hover:bg-blue-800">
                 Scan Folder
               </Button>
             </ConnectLocalModal>

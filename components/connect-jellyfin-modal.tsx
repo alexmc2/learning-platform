@@ -277,7 +277,7 @@ export function ConnectJellyfinModal({
             <Button
               type="submit"
               disabled={loading}
-              className="mt-2 bg-[#AA5CC3] text-white hover:bg-[#AA5CC3]/90"
+              className="mt-2 bg-[#a21caf] text-white hover:bg-[#a21caf]/90"
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{' '}
               Login
@@ -308,7 +308,7 @@ export function ConnectJellyfinModal({
                   size="sm"
                   onClick={handleSyncCurrentFolder}
                   disabled={loading}
-                  className="bg-[#AA5CC3] hover:bg-[#AA5CC3]/90 text-white shrink-0"
+                  className="bg-[#a21caf] hover:bg-[#a21caf]/90 text-white shrink-0"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

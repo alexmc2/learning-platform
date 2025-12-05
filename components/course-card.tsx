@@ -10,6 +10,8 @@ import {
   ConnectJellyfinModal,
   type JellyfinVideo,
 } from '@/components/connect-jellyfin-modal';
+import { ThemedBounceLoader } from '@/components/themed-bounce-loader';
+import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +51,8 @@ export function CourseCard({
   previewTitles,
 }: CourseCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const { toast } = useToast();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,12 +74,43 @@ export function CourseCard({
   const actionLabel = isCompleted ? 'Review' : 'Resume';
 
   const handleReconnect = async (videos: JellyfinVideo[]) => {
-    await importJellyfinVideos(videos);
-    window.location.reload();
+    if (!videos.length) return;
+
+    setIsImporting(true);
+    try {
+      const result = await importJellyfinVideos(videos);
+      if (!result?.ok) {
+        throw new Error('Failed to import videos');
+      }
+      window.location.reload();
+    } catch (error) {
+      console.error('Jellyfin import failed', error);
+      toast({
+        title: 'Import failed',
+        description: 'Failed to import videos. Please try again.',
+        variant: 'destructive',
+      });
+      setIsImporting(false);
+    }
   };
 
   return (
     <Card className="relative flex h-full flex-col border border-border/70 bg-card shadow-sm">
+      {isImporting ? (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-lg bg-background/90 backdrop-blur-sm">
+          <ThemedBounceLoader
+            size={56}
+            ariaLabel="Importing videos"
+            dataTestid={`course-${id}-import-loader`}
+          />
+          <div className="text-center space-y-1">
+            <p className="text-sm font-semibold">Importing videos…</p>
+            <p className="text-xs text-muted-foreground">
+              We&apos;ll refresh once everything is saved.
+            </p>
+          </div>
+        </div>
+      ) : null}
       <div className="absolute right-3 top-3" ref={menuRef}>
         <Button
           variant="ghost"

@@ -58,7 +58,7 @@ function LoginPrompt() {
       <CardContent className="flex flex-col gap-4 p-6">
         <h3 className="text-lg font-semibold">Log in to see your courses</h3>
         <p className="text-sm text-foreground/80">
-          Sign in with Supabase to view and sync saved courses and progress.
+          Sign in to view and sync saved courses and progress.
         </p>
         <AuthDialog
           trigger={
