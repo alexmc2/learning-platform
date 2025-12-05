@@ -4,6 +4,7 @@ import { Readable } from 'node:stream';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { prisma } from '@/lib/prisma';
+import { requireUser } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
@@ -25,7 +26,15 @@ export async function GET(req: NextRequest) {
     return toError('Invalid video id');
   }
 
-  const video = await prisma.video.findUnique({ where: { id } });
+  let user: Awaited<ReturnType<typeof requireUser>>;
+  try {
+    user = await requireUser();
+  } catch {
+    return toError('Unauthorized', 401);
+  }
+  const video = await prisma.video.findFirst({
+    where: { id, ownerId: user.id },
+  });
 
   if (!video) {
     return toError('Video not found', 404);

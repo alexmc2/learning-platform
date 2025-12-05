@@ -16,6 +16,7 @@ export default async function CoursesPage() {
     orderBy: { createdAt: "desc" },
     include: {
       items: {
+        where: { video: { ownerId: user.id } },
         orderBy: { position: "asc" },
         include: {
           video: {

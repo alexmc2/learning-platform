@@ -14,6 +14,15 @@ export async function setVideoCompletion(formData: FormData) {
     throw new Error("Invalid video id");
   }
 
+  const ownedVideo = await prisma.video.findFirst({
+    where: { id, ownerId: user.id },
+    select: { id: true },
+  });
+
+  if (!ownedVideo) {
+    throw new Error("Video not found");
+  }
+
   await prisma.videoProgress.upsert({
     where: {
       videoId_userId: {

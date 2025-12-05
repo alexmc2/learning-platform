@@ -13,21 +13,28 @@ type SearchParams = {
   promptSave?: string | string[];
 };
 
+type VideoWithProgress = Prisma.VideoGetPayload<{
+  include: { progress: { select: { completed: true } } };
+}>;
+
 export default async function Home({
   searchParams,
 }: {
   searchParams?: Promise<SearchParams> | SearchParams;
 }) {
   const user = await getCurrentUser();
-  const progressInclude = user
-    ? { where: { userId: user.id }, select: { completed: true } }
-    : { select: { completed: true } };
-  const rawVideos = (await prisma.video.findMany({
-    include: { progress: progressInclude },
-  })) as Prisma.VideoGetPayload<{
-    include: { progress: { select: { completed: true } } };
-  }>[];
-  const canSync = Boolean(process.env.VIDEO_ROOT);
+  const rawVideos: VideoWithProgress[] = user
+    ? await prisma.video.findMany({
+        where: { ownerId: user.id },
+        include: {
+          progress: {
+            where: { userId: user.id },
+            select: { completed: true },
+          },
+        },
+      })
+    : [];
+  const canSync = Boolean(process.env.VIDEO_ROOT) && Boolean(user);
   const hasSavedCourses = user
     ? (await prisma.course.count({ where: { ownerId: user.id } })) > 0
     : false;

@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -68,11 +67,10 @@ export function AuthDialog({ trigger }: AuthDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {mode === 'signin' ? 'Log in to save progress' : 'Create an account'}
+            {mode === 'signin'
+              ? 'Log in to save progress'
+              : 'Create an account'}
           </DialogTitle>
-          <DialogDescription>
-            Use your Supabase credentials to keep courses and progress synced.
-          </DialogDescription>
         </DialogHeader>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -118,8 +116,7 @@ export function AuthDialog({ trigger }: AuthDialogProps) {
                 </>
               ) : (
                 <>
-                  <LogIn className="h-4 w-4" />
-                  I already have an account
+                  <LogIn className="h-4 w-4" />I already have an account
                 </>
               )}
             </Button>
@@ -128,8 +125,8 @@ export function AuthDialog({ trigger }: AuthDialogProps) {
               {isPending
                 ? 'Working...'
                 : mode === 'signin'
-                  ? 'Log in'
-                  : 'Sign up'}
+                ? 'Log in'
+                : 'Sign up'}
             </Button>
           </div>
         </form>

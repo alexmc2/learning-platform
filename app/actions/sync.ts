@@ -50,8 +50,10 @@ export type SyncResult = {
 };
 
 export async function clearAllVideos() {
-  await requireUser();
-  const deleted = await prisma.video.deleteMany({});
+  const user = await requireUser();
+  const deleted = await prisma.video.deleteMany({
+    where: { ownerId: user.id },
+  });
   revalidatePath('/');
   revalidatePath('/courses');
   console.log(`Cleared ${deleted.count} videos from library`);
@@ -63,6 +65,7 @@ export async function syncLibrary(
 ): Promise<SyncResult> {
   try {
     console.log('--- SYNC STARTED ---');
+    const user = await requireUser();
 
     const mode = formData.get('mode') === 'remove' ? 'remove' : 'scan';
     const replaceExisting = formData.get('replace') === 'true';
@@ -95,6 +98,7 @@ export async function syncLibrary(
     if (mode === 'remove') {
       const deleted = await prisma.video.deleteMany({
         where: {
+          ownerId: user.id,
           path: { startsWith: root },
           NOT: { path: { startsWith: 'http' } },
         },
@@ -134,12 +138,18 @@ export async function syncLibrary(
         const title = titleFromFilename(path.basename(absolutePath));
 
         await prisma.video.upsert({
-          where: { filename },
+          where: {
+            ownerId_filename: {
+              ownerId: user.id,
+              filename,
+            },
+          },
           update: {
             path: absolutePath,
             title,
           },
           create: {
+            ownerId: user.id,
             filename,
             title,
             path: absolutePath,
@@ -151,6 +161,7 @@ export async function syncLibrary(
     console.log('Database Upsert Complete.');
 
     const existing = await prisma.video.findMany({
+      where: { ownerId: user.id },
       select: { filename: true, path: true },
     });
 
@@ -161,6 +172,7 @@ export async function syncLibrary(
     if (resolvedPaths.length > 0) {
       await prisma.video.deleteMany({
         where: {
+          ownerId: user.id,
           path: { in: resolvedPaths },
           filename: { notIn: Array.from(foundFilenames) },
         },
@@ -184,7 +196,7 @@ export async function syncLibrary(
         removedCount = missingFilenames.length;
         console.log(`Removing ${removedCount} missing videos from DB.`);
         await prisma.video.deleteMany({
-          where: { filename: { in: missingFilenames } },
+          where: { ownerId: user.id, filename: { in: missingFilenames } },
         });
       }
     } else {
@@ -237,6 +249,7 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
   console.log('--- IMPORTING JELLYFIN VIDEOS ---');
 
   try {
+    const user = await requireUser();
     if (videos.length === 0) {
       return { ok: false };
     }
@@ -252,6 +265,7 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
       const prefix = `jellyfin|${serverUrl}|`;
       await prisma.video.deleteMany({
         where: {
+          ownerId: user.id,
           OR: [
             { filename: { startsWith: prefix } },
             { path: { startsWith: serverUrl } },
@@ -270,13 +284,19 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
       paths.push(video.sourceUrl);
 
       await prisma.video.upsert({
-        where: { filename: uniqueKey },
+        where: {
+          ownerId_filename: {
+            ownerId: user.id,
+            filename: uniqueKey,
+          },
+        },
         update: {
           path: video.sourceUrl,
           title: video.title,
           duration: video.duration ? Math.round(video.duration) : null,
         },
         create: {
+          ownerId: user.id,
           filename: uniqueKey,
           path: video.sourceUrl,
           title: video.title,
@@ -289,6 +309,7 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
     if (paths.length > 0) {
       await prisma.video.deleteMany({
         where: {
+          ownerId: user.id,
           path: { in: paths },
           filename: { notIn: Array.from(keepKeys) },
         },

@@ -31,6 +31,19 @@ export async function saveCourse(
 
   const uniqueIds = Array.from(new Set(videoIds));
 
+  if (uniqueIds.length > 0) {
+    const ownedCount = await prisma.video.count({
+      where: { ownerId: user.id, id: { in: uniqueIds } },
+    });
+
+    if (ownedCount !== uniqueIds.length) {
+      return {
+        ok: false,
+        message: "Some videos are missing or not available to your account.",
+      };
+    }
+  }
+
   try {
     await prisma.course.create({
       data: {
