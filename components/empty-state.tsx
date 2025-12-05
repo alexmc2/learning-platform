@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 import { HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,10 +9,10 @@ import {
   ConnectJellyfinModal,
   type JellyfinVideo,
 } from '@/components/connect-jellyfin-modal';
-import { ThemedBounceLoader } from "@/components/themed-bounce-loader";
-import { useToast } from "@/hooks/use-toast";
+import { ThemedBounceLoader } from '@/components/themed-bounce-loader';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { importJellyfinVideos } from '@/app/actions/sync'; 
+import { importJellyfinVideos } from '@/app/actions/sync';
 
 function JellyfinLogo({ className }: { className?: string }) {
   return (
@@ -58,9 +58,10 @@ export function EmptyState() {
     } catch (error) {
       console.error('Jellyfin import failed', error);
       toast({
-        title: "Import failed",
-        description: "Something went wrong while importing your videos. Please try again.",
-        variant: "destructive",
+        title: 'Import failed',
+        description:
+          'Something went wrong while importing your videos. Please try again.',
+        variant: 'destructive',
       });
       setIsImporting(false);
     }
@@ -98,13 +99,13 @@ export function EmptyState() {
         <Card
           className={cn(
             'group relative flex flex-col items-center justify-between overflow-hidden border-2 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
-            'border-muted bg-card hover:border-[#AA5CC3]/50 dark:hover:border-[#AA5CC3]/70'
+            'border-muted bg-card hover:border-[#a21caf]/50 dark:hover:border-[#a21caf]/70'
           )}
         >
-          <div className="absolute inset-0 bg-linear-to-br from-[#AA5CC3]/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          <div className="absolute inset-0 bg-linear-to-br from-[#a21caf]/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
           <div className="z-10 flex flex-col items-center gap-4 text-center">
-            <div className="rounded-2xl bg-[#AA5CC3]/10 p-4 text-[#AA5CC3] ring-1 ring-[#AA5CC3]/20 transition-all duration-300 group-hover:bg-[#AA5CC3] group-hover:text-white group-hover:ring-[#AA5CC3]">
+            <div className="rounded-2xl bg-[#a21caf]/10 p-4 text-[#a21caf] ring-1 ring-[#a21caf]/20 transition-all duration-300 group-hover:bg-[#a21caf] group-hover:text-white group-hover:ring-[#a21caf]">
               <JellyfinLogo className="h-8 w-8" />
             </div>
             <div className="space-y-1">
@@ -117,7 +118,7 @@ export function EmptyState() {
 
           <div className="z-10 mt-8 w-full">
             <ConnectJellyfinModal onConnected={handleConnected}>
-              <Button className="w-full bg-[#AA5CC3] text-white hover:bg-[#AA5CC3]/90">
+              <Button className="w-full bg-[#a21caf] text-white hover:bg-[#a21caf]/90">
                 Connect Server
               </Button>
             </ConnectJellyfinModal>

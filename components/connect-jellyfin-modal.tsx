@@ -211,7 +211,7 @@ export function ConnectJellyfinModal({
 
       onConnected(mapped);
       setOpen(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError('Failed to sync this folder.');
     } finally {
@@ -343,7 +343,7 @@ export function ConnectJellyfinModal({
                           'CollectionFolder',
                           'UserView',
                         ].includes(item.Type) ? (
-                          <Folder className="h-4 w-4 text-[#AA5CC3] shrink-0" />
+                          <Folder className="h-4 w-4 text-[#a21caf] shrink-0" />
                         ) : (
                           <HardDrive className="h-4 w-4 text-muted-foreground shrink-0" />
                         )}
