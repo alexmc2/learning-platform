@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Learning Platform",
-  description: "Local-first LMS for course videos",
+  description: "A Learning Platform for Video Courses",
 }
 
 export default async function RootLayout({

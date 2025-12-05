@@ -1,10 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useActionState } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, Clock, MoreVertical, Play } from 'lucide-react';
 
-import { resetCourseProgress, deleteCourse } from '@/app/actions/course';
+import {
+  resetCourseProgress,
+  deleteCourse,
+  renameCourse,
+  type RenameCourseState,
+} from '@/app/actions/course';
 import { importJellyfinVideos } from '@/app/actions/sync';
 import {
   ConnectJellyfinModal,
@@ -24,6 +30,16 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
@@ -53,6 +69,14 @@ export function CourseCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const { toast } = useToast();
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState(name);
+  const [courseName, setCourseName] = useState(name);
+  const initialRenameState: RenameCourseState = { ok: true, message: '' };
+  const [renameState, renameAction, renamePending] = useActionState(
+    renameCourse,
+    initialRenameState
+  );
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,6 +89,18 @@ export function CourseCard({
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [menuOpen]);
+
+  useEffect(() => {
+    setRenameValue(name);
+    setCourseName(name);
+  }, [name]);
+
+  useEffect(() => {
+    if (renameState.ok && renameState.message && !renamePending) {
+      setCourseName(renameValue.trim());
+      setRenameOpen(false);
+    }
+  }, [renamePending, renameState, renameValue]);
 
   const progressPercent =
     totalLessons === 0
@@ -124,8 +160,8 @@ export function CourseCard({
         </Button>
         <div
           className={cn(
-            "absolute right-0 z-20 mt-1 w-44 rounded-md border border-border/70 bg-popover shadow-lg transition-opacity",
-            menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+            'absolute right-0 z-20 mt-1 w-44 rounded-md border border-border/70 bg-popover shadow-lg transition-opacity',
+            menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
           )}
         >
           <div className="flex flex-col divide-y divide-border/70">
@@ -145,7 +181,8 @@ export function CourseCard({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Reset course progress?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will clear completion for all lessons in this course for your account.
+                      This will clear completion for all lessons in this course
+                      for your account.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -155,8 +192,63 @@ export function CourseCard({
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </form>
-              </AlertDialogContent>
-            </AlertDialog>
+            </AlertDialogContent>
+          </AlertDialog>
+
+            <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted/70 cursor-pointer"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setRenameValue(courseName);
+                  }}
+                >
+                  Rename course
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Rename course</DialogTitle>
+                </DialogHeader>
+                <form action={renameAction} className="space-y-4">
+                  <input type="hidden" name="courseId" value={id} />
+                  <div className="space-y-2">
+                    <Label htmlFor={`course-name-${id}`}>New name</Label>
+                    <Input
+                      id={`course-name-${id}`}
+                      name="name"
+                      value={renameValue}
+                      onChange={(event) => setRenameValue(event.target.value)}
+                      required
+                    />
+                  </div>
+                  {renameState.message ? (
+                    <p
+                      className={cn(
+                        'text-sm',
+                        renameState.ok ? 'text-emerald-600' : 'text-destructive'
+                      )}
+                    >
+                      {renameState.message}
+                    </p>
+                  ) : null}
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setRenameOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={renamePending}>
+                      {renamePending ? 'Renaming...' : 'Rename'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -174,7 +266,8 @@ export function CourseCard({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete this course?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This removes the course and its items. Video files stay untouched.
+                      This removes the course and permanently deletes the
+                      associated videos from your library.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -191,7 +284,7 @@ export function CourseCard({
       </div>
       <CardHeader className="pr-12">
         <CardTitle className="text-lg">
-          <span className="truncate">{name}</span>
+          <span className="truncate">{courseName}</span>
         </CardTitle>
         <span className="text-sm font-normal text-foreground/80">
           {completedLessons}/{totalLessons} complete
@@ -200,7 +293,7 @@ export function CourseCard({
       <CardContent className="space-y-4">
         <div className="h-2 rounded-full bg-muted">
           <div
-            className="h-2 rounded-full bg-primary transition-all"
+            className="h-2 rounded-full bg-emerald-500 transition-all"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -235,7 +328,7 @@ export function CourseCard({
         </div>
         {nextVideoId ? (
           <Button asChild size="sm" className="gap-2">
-            <Link href={`/?v=${nextVideoId}`}>
+            <Link href={`/?courseId=${id}&v=${nextVideoId}`}>
               <Play className="h-4 w-4" />
               {actionLabel}
             </Link>

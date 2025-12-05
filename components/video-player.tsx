@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
@@ -48,6 +49,8 @@ export function VideoPlayer({
   nextId,
   canTrackProgress = false,
 }: VideoPlayerProps) {
+  const searchParams = useSearchParams();
+  const courseId = searchParams.get('courseId');
   const isRemote = video.path.startsWith('http');
   const streamUrl = isRemote ? video.path : `/api/stream?id=${video.id}`;
   const nextCompletedValue = (!video.completed).toString();
@@ -62,6 +65,10 @@ export function VideoPlayer({
   const [isTouch, setIsTouch] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+  const getLink = (id: number) => {
+    return courseId ? `/?courseId=${courseId}&v=${id}` : `/?v=${id}`;
+  };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -399,7 +406,7 @@ export function VideoPlayer({
         <div className="flex items-center gap-2">
           {prevId ? (
             <Button asChild variant="default" size="lg">
-              <Link href={`/?v=${prevId}`}>
+              <Link href={getLink(prevId)}>
                 <ChevronLeft className="mr-2 h-4 w-4" />
                 Previous
               </Link>
@@ -412,7 +419,7 @@ export function VideoPlayer({
           )}
           {nextId ? (
             <Button asChild variant="default" size="lg">
-              <Link href={`/?v=${nextId}`}>
+              <Link href={getLink(nextId)}>
                 Next
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Link>

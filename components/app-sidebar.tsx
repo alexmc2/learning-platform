@@ -1,10 +1,18 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { CheckCircle2, ChevronDown, Circle, Search, Trophy } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import {
+  CheckCircle2,
+  ChevronDown,
+  Circle,
+  Search,
+  Trophy,
+} from 'lucide-react';
 
-import { Badge } from "@/components/ui/badge";
+import { setVideosCompletion } from '@/app/actions/video';
+import { Badge } from '@/components/ui/badge';
 import {
   Sidebar,
   SidebarContent,
@@ -16,8 +24,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 
 type VideoListItem = {
   id: number;
@@ -34,12 +42,15 @@ export function AppSidebar({
   videos: VideoListItem[];
   currentId?: number;
 }) {
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const courseId = searchParams.get('courseId');
+  const [query, setQuery] = useState('');
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [pendingSection, setPendingSection] = useState<string | null>(null);
 
   const completedCount = useMemo(
     () => videos.filter((video) => video.completed).length,
-    [videos],
+    [videos]
   );
 
   const grouped = useMemo(() => groupVideos(videos, query), [videos, query]);
@@ -50,6 +61,23 @@ export function AppSidebar({
       return { ...previous, [section]: !isOpen };
     });
   };
+
+  const handleSectionCompletion = useCallback(
+    async (section: string, videoIds: number[], complete: boolean) => {
+      if (videoIds.length === 0) return;
+      setPendingSection(section);
+
+      try {
+        const formData = new FormData();
+        formData.append('videoIds', JSON.stringify(videoIds));
+        formData.append('completed', complete ? 'true' : 'false');
+        await setVideosCompletion(formData);
+      } finally {
+        setPendingSection((current) => (current === section ? null : current));
+      }
+    },
+    []
+  );
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
@@ -86,8 +114,8 @@ export function AppSidebar({
                   >
                     <ChevronDown
                       className={cn(
-                        "h-4 w-4 transition-transform",
-                        isOpen ? "rotate-0" : "-rotate-90",
+                        'h-4 w-4 transition-transform',
+                        isOpen ? 'rotate-0' : '-rotate-90'
                       )}
                     />
                     <span className="flex-1 truncate">{section}</span>
@@ -98,9 +126,24 @@ export function AppSidebar({
                 </SidebarGroupLabel>
                 {isOpen ? (
                   <SidebarGroupContent className="px-1 pb-2">
+                    <SectionCompletionToggle
+                      section={section}
+                      items={items}
+                      pending={pendingSection === section}
+                      onToggle={(nextCompleted) =>
+                        handleSectionCompletion(
+                          section,
+                          items.map((item) => item.id),
+                          nextCompleted
+                        )
+                      }
+                    />
                     <SidebarMenu className="space-y-1">
                       {items.map((video) => {
                         const isActive = video.id === currentId;
+                        const nextUrl = courseId
+                          ? `/?courseId=${courseId}&v=${video.id}`
+                          : `/?v=${video.id}`;
 
                         return (
                           <SidebarMenuItem key={video.id}>
@@ -110,7 +153,7 @@ export function AppSidebar({
                               className="items-start gap-3"
                               tooltip={video.title}
                             >
-                              <Link href={`/?v=${video.id}`}>
+                              <Link href={nextUrl}>
                                 {video.completed ? (
                                   <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                                 ) : (
@@ -123,7 +166,10 @@ export function AppSidebar({
                                   <div className="flex items-center gap-2 text-sm text-sidebar-foreground/70">
                                     <span>Video</span>
                                     {video.duration ? (
-                                      <Badge variant="outline" className="px-1.5 py-0">
+                                      <Badge
+                                        variant="outline"
+                                        className="px-1.5 py-0"
+                                      >
                                         {formatDuration(video.duration)}
                                       </Badge>
                                     ) : null}
@@ -151,7 +197,13 @@ export function AppSidebar({
   );
 }
 
-function ProgressSummary({ completed, total }: { completed: number; total: number }) {
+function ProgressSummary({
+  completed,
+  total,
+}: {
+  completed: number;
+  total: number;
+}) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressPercent =
@@ -170,17 +222,17 @@ function ProgressSummary({ completed, total }: { completed: number; total: numbe
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         setOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [open]);
 
@@ -191,7 +243,7 @@ function ProgressSummary({ completed, total }: { completed: number; total: numbe
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((previous) => !previous)}
-        className="flex w-full items-center gap-3 rounded-lg border border-sidebar-border/80 bg-sidebar px-2.5 py-2 text-left shadow-sm transition hover:border-sidebar-foreground/25 hover:bg-sidebar/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-foreground/30 cursor-pointer"
+        className="flex w-full items-center gap-3 rounded-lg border border-indigo-500/70 bg-indigo-700 px-2.5 py-2 text-left shadow-sm transition hover:border-indigo-400 hover:bg-indigo-600 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-indigo-300 cursor-pointer"
       >
         <div
           className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
@@ -199,24 +251,24 @@ function ProgressSummary({ completed, total }: { completed: number; total: numbe
             background: `conic-gradient(#22c55e ${progressPercent}%, rgba(148,163,184,0.5) ${progressPercent}% 100%)`,
           }}
         >
-          <div className="absolute inset-[3px] rounded-full border border-sidebar-border/70 bg-sidebar/90 shadow-inner" />
-          <Trophy className="relative h-5 w-5 text-sidebar-foreground/80" />
+          <div className="absolute inset-[3px] rounded-full border border-white/20 bg-indigo-800 shadow-inner" />
+          <Trophy className="relative h-5 w-5 text-white" />
         </div>
         <div className="flex flex-1 items-center justify-between gap-2">
           <div className="flex flex-col leading-tight">
-            <span className="text-sm font-semibold text-sidebar-foreground">
+            <span className="text-sm font-semibold text-indigo-50">
               Your progress
             </span>
-            <span className="text-xs text-sidebar-foreground/70">
+            <span className="text-xs text-indigo-100/80">
               {completed}/{total} lessons
             </span>
           </div>
-          <div className="flex items-center gap-1 text-sm font-bold text-sidebar-foreground">
+          <div className="flex items-center gap-1 text-sm font-bold text-indigo-50">
             {progressPercent}%
             <ChevronDown
               className={cn(
-                "h-4 w-4 transition-transform text-sidebar-foreground/70",
-                open ? "rotate-180" : "rotate-0",
+                'h-4 w-4 transition-transform text-indigo-100/80',
+                open ? 'rotate-180' : 'rotate-0'
               )}
               aria-hidden
             />
@@ -226,15 +278,15 @@ function ProgressSummary({ completed, total }: { completed: number; total: numbe
       {open ? (
         <div className="absolute left-0 right-auto top-full z-20 mt-3 w-[min(320px,calc(100vw-2.5rem))]">
           <div className="relative">
-            <div className="absolute left-10 -top-2 h-4 w-4 rotate-45 rounded-sm border border-sidebar-border/70 bg-sidebar shadow-md" />
-            <div className="rounded-xl border border-sidebar-border/70 bg-sidebar/95 px-4 py-3 text-sidebar-foreground shadow-2xl backdrop-blur supports-[backdrop-filter]:bg-sidebar/85">
-              <p className="text-md font-bold">
+            <div className="absolute left-10 -top-2 h-4 w-4 rotate-45 rounded-sm border border-indigo-500/70 bg-indigo-700 shadow-md" />
+            <div className="rounded-xl border border-indigo-500/70 bg-indigo-700/95 px-4 py-3 text-indigo-50 shadow-2xl backdrop-blur supports-backdrop-filter:bg-indigo-700/85">
+              <p className="text-md font-bold text-indigo-50">
                 {completed} of {total} complete.
               </p>
-              <p className="mt-2 text-sm text-sidebar-foreground/75">
+              <p className="mt-2 text-sm text-indigo-100/85">
                 {total === 0
-                  ? "Start your first lesson to track progress."
-                  : "Keep going to finish the course and earn your win."}
+                  ? 'Start your first lesson to track progress.'
+                  : 'Keep going to finish the course and earn your win.'}
               </p>
             </div>
           </div>
@@ -250,6 +302,50 @@ type GroupedVideos = {
   items: VideoListItem[];
 };
 
+function SectionCompletionToggle({
+  section,
+  items,
+  pending,
+  onToggle,
+}: {
+  section: string;
+  items: VideoListItem[];
+  pending: boolean;
+  onToggle: (nextCompleted: boolean) => void;
+}) {
+  const checkboxRef = useRef<HTMLInputElement>(null);
+  const total = items.length;
+  const completedCount = items.filter((item) => item.completed).length;
+  const allComplete = total > 0 && completedCount === total;
+  const someComplete = completedCount > 0 && !allComplete;
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = someComplete;
+    }
+  }, [someComplete]);
+
+  return (
+    <label className="mb-2 flex items-center justify-between rounded-md border border-sidebar-border/70 bg-sidebar/50 px-2.5 py-2 text-sm text-sidebar-foreground">
+      <span className="flex items-center gap-2">
+        <input
+          ref={checkboxRef}
+          type="checkbox"
+          className="h-4 w-4 rounded border-indigo-400 bg-indigo-700 text-emerald-500 focus:ring-emerald-500 disabled:opacity-50"
+          checked={allComplete}
+          onChange={() => onToggle(!allComplete)}
+          disabled={pending || total === 0}
+          aria-label={`Mark all videos in ${section} as complete`}
+        />
+        <span>Mark all as complete</span>
+      </span>
+      <span className="text-xs text-sidebar-foreground/70">
+        {completedCount}/{total}
+      </span>
+    </label>
+  );
+}
+
 function groupVideos(videos: VideoListItem[], query: string): GroupedVideos[] {
   const term = query.trim().toLowerCase();
   const seenOrder = new Map<string, number>();
@@ -259,12 +355,12 @@ function groupVideos(videos: VideoListItem[], query: string): GroupedVideos[] {
     if (
       term &&
       !video.title.toLowerCase().includes(term) &&
-      !(video.section ?? "").toLowerCase().includes(term)
+      !(video.section ?? '').toLowerCase().includes(term)
     ) {
       return;
     }
 
-    const section = video.section ?? "Library";
+    const section = video.section ?? 'Library';
 
     if (!groups.has(section)) {
       seenOrder.set(section, index);
@@ -288,5 +384,5 @@ function groupVideos(videos: VideoListItem[], query: string): GroupedVideos[] {
 function formatDuration(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }

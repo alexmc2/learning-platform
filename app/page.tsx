@@ -10,6 +10,7 @@ export const revalidate = 0;
 
 type SearchParams = {
   v?: string | string[];
+  courseId?: string | string[];
   promptSave?: string | string[];
 };
 
@@ -23,17 +24,55 @@ export default async function Home({
   searchParams?: Promise<SearchParams> | SearchParams;
 }) {
   const user = await getCurrentUser();
-  const rawVideos: VideoWithProgress[] = user
-    ? await prisma.video.findMany({
-        where: { ownerId: user.id },
+  const resolvedSearchParams = await Promise.resolve(searchParams);
+  const courseIdParam = parseId(resolvedSearchParams?.courseId);
+
+  let rawVideos: VideoWithProgress[] = [];
+
+  if (user) {
+    if (courseIdParam) {
+      // 1. COURSE CONTEXT
+      const course = await prisma.course.findUnique({
+        where: { id: courseIdParam, ownerId: user.id },
+        include: {
+          items: {
+            include: {
+              video: {
+                include: {
+                  progress: {
+                    where: { userId: user.id },
+                    select: { completed: true },
+                  },
+                },
+              },
+            },
+            orderBy: { position: 'asc' },
+          },
+        },
+      });
+
+      if (course) {
+        rawVideos = course.items.map((item) => item.video);
+      }
+    } else {
+      // 2. INBOX CONTEXT (Only unassigned videos)
+      rawVideos = await prisma.video.findMany({
+        where: {
+          ownerId: user.id,
+          courseItems: {
+            none: {},
+          },
+        },
         include: {
           progress: {
             where: { userId: user.id },
             select: { completed: true },
           },
         },
-      })
-    : [];
+      });
+    }
+  }
+
   const canSync = Boolean(process.env.VIDEO_ROOT) && Boolean(user);
   const hasSavedCourses = user
     ? (await prisma.course.count({ where: { ownerId: user.id } })) > 0
@@ -45,17 +84,14 @@ export default async function Home({
       const exists = await fileExists(video.path);
       if (!exists) return null;
 
-      // 1. EXTRACT SECTION LOGIC
       let section = 'Library';
 
-      // If it's a Jellyfin video (stored as "jellyfin|SECTION|TITLE")
       if (video.filename.startsWith('jellyfin|')) {
         const parts = video.filename.split('|');
         if (parts.length >= 2) {
-          section = parts[1]; // Recover the section name
+          section = parts[1];
         }
       } else {
-        // Local file logic
         section = deriveLocalSection(video.path);
       }
 
@@ -68,26 +104,21 @@ export default async function Home({
     })
   );
 
-  // 2. FILTER & SORT
   const videos = withSections
     .filter((video): video is NonNullable<(typeof withSections)[number]> =>
       Boolean(video)
     )
     .sort((a, b) => {
-      // Sort by Section first
       const sectionCompare = (a.section || '').localeCompare(
         b.section || '',
         undefined,
         { numeric: true }
       );
       if (sectionCompare !== 0) return sectionCompare;
-
-      // Then sort by Title (numeric aware, so "Lesson 2" comes before "Lesson 10")
       return a.title.localeCompare(b.title, undefined, { numeric: true });
     });
 
-  const resolvedSearchParams = await Promise.resolve(searchParams);
-  const requestedId = parseVideoId(resolvedSearchParams?.v);
+  const requestedId = parseId(resolvedSearchParams?.v);
   const currentId = requestedId ?? videos[0]?.id;
   const currentIndex = videos.findIndex((video) => video.id === currentId);
   const currentVideo = currentIndex >= 0 ? videos[currentIndex] : null;
@@ -100,6 +131,9 @@ export default async function Home({
       ? videos[currentIndex + 1].id
       : undefined;
 
+  // Logic: Show clear button ONLY if we are in Inbox Mode (no courseId) AND there are videos to clear
+  const showClearLibraryButton = !courseIdParam && videos.length > 0;
+
   return (
     <HomePageContent
       videos={videos}
@@ -111,6 +145,7 @@ export default async function Home({
       showImportButton={showImportButton}
       promptSave={resolvedSearchParams?.promptSave === '1'}
       hasSavedCourses={hasSavedCourses}
+      showClearLibraryButton={showClearLibraryButton} // Pass the calculated flag
       user={
         user
           ? {
@@ -141,7 +176,7 @@ async function fileExists(filePath: string) {
   }
 }
 
-function parseVideoId(value?: string | string[]) {
+function parseId(value?: string | string[]) {
   const asString = Array.isArray(value) ? value[0] : value;
   if (!asString) return undefined;
   const parsed = Number(asString);

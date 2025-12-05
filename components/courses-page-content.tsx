@@ -1,9 +1,19 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CourseCard } from '@/components/course-card';
 
 type SessionUser = { id: string; email?: string } | null;
@@ -15,7 +25,17 @@ export type CourseSummary = {
   completedLessons: number;
   nextVideoId?: number;
   previewTitles: string[];
+  createdAt: string;
 };
+
+type SortOption =
+  | 'newest'
+  | 'oldest'
+  | 'name'
+  | 'progress-desc'
+  | 'progress-asc';
+
+const SORT_STORAGE_KEY = 'courses_sort';
 
 export function CoursesPageContent({
   user,
@@ -24,6 +44,49 @@ export function CoursesPageContent({
   user: SessionUser;
   courses: CourseSummary[];
 }) {
+  const [sort, setSort] = useState<SortOption>(() => {
+    if (typeof window === 'undefined') return 'newest';
+    const stored = window.localStorage.getItem(SORT_STORAGE_KEY);
+    if (
+      stored === 'newest' ||
+      stored === 'oldest' ||
+      stored === 'name' ||
+      stored === 'progress-desc' ||
+      stored === 'progress-asc'
+    ) {
+      return stored;
+    }
+    return 'newest';
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(SORT_STORAGE_KEY, sort);
+  }, [sort]);
+
+  const sortedCourses = useMemo(() => {
+    const getProgress = (course: CourseSummary) =>
+      course.totalLessons === 0
+        ? 0
+        : course.completedLessons / course.totalLessons;
+
+    return [...courses].sort((a, b) => {
+      switch (sort) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case 'progress-desc':
+          return getProgress(b) - getProgress(a);
+        case 'progress-asc':
+          return getProgress(a) - getProgress(b);
+        case 'newest':
+        default:
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+  }, [courses, sort]);
+
   return (
     <div className="flex min-h-screen flex-col bg-muted/10">
       <PageHeader user={user} videos={[]} onCoursesPage showImportButton />
@@ -34,6 +97,25 @@ export function CoursesPageContent({
               Saved Courses
             </h2>
           </div>
+          {user && courses.length > 0 ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wide">
+                Sort
+              </span>
+              <Select value={sort} onValueChange={(value) => setSort(value as SortOption)}>
+                <SelectTrigger size="sm" className="min-w-44 bg-background/70 backdrop-blur">
+                  <SelectValue aria-label="Sort courses" />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="newest">Newest first</SelectItem>
+                  <SelectItem value="oldest">Oldest first</SelectItem>
+                  <SelectItem value="name">Name (A–Z)</SelectItem>
+                  <SelectItem value="progress-desc">Most complete</SelectItem>
+                  <SelectItem value="progress-asc">Least complete</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
         </div>
 
         {!user ? (
@@ -42,7 +124,7 @@ export function CoursesPageContent({
           <EmptyCourses />
         ) : (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {courses.map((course) => (
+            {sortedCourses.map((course) => (
               <CourseCard key={course.id} {...course} />
             ))}
           </div>

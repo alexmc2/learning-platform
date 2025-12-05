@@ -1,32 +1,37 @@
-"use server";
+'use server';
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from 'next/cache';
 
-import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/lib/generated/prisma/client";
-import { requireUser } from "@/lib/supabase/server";
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@/lib/generated/prisma/client';
+import { requireUser } from '@/lib/supabase/server';
 
 export type SaveCourseState = {
   ok: boolean;
   message: string;
 };
 
+export type RenameCourseState = {
+  ok: boolean;
+  message: string;
+};
+
 export async function saveCourse(
   _prevState: SaveCourseState,
-  formData: FormData,
+  formData: FormData
 ): Promise<SaveCourseState> {
   const user = await requireUser();
-  const rawName = (formData.get("name") ?? "").toString().trim();
-  const rawIds = formData.get("videoIds");
+  const rawName = (formData.get('name') ?? '').toString().trim();
+  const rawIds = formData.get('videoIds');
 
   if (!rawName) {
-    return { ok: false, message: "Please provide a course name." };
+    return { ok: false, message: 'Please provide a course name.' };
   }
 
   const videoIds = parseIds(rawIds);
 
   if (videoIds.length === 0) {
-    return { ok: false, message: "No videos available to save." };
+    return { ok: false, message: 'No videos available to save.' };
   }
 
   const uniqueIds = Array.from(new Set(videoIds));
@@ -39,7 +44,7 @@ export async function saveCourse(
     if (ownedCount !== uniqueIds.length) {
       return {
         ok: false,
-        message: "Some videos are missing or not available to your account.",
+        message: 'Some videos are missing or not available to your account.',
       };
     }
   }
@@ -58,23 +63,65 @@ export async function saveCourse(
       },
     });
 
-    revalidatePath("/");
-    revalidatePath("/courses");
+    revalidatePath('/');
+    revalidatePath('/courses');
 
-    return { ok: true, message: "Course saved" };
+    return { ok: true, message: 'Course saved' };
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
+      error.code === 'P2002'
     ) {
       return {
         ok: false,
-        message: "You already have a course with that name.",
+        message: 'You already have a course with that name.',
       };
     }
 
-    console.error("Failed to save course", error);
-    return { ok: false, message: "Failed to save the course." };
+    console.error('Failed to save course', error);
+    return { ok: false, message: 'Failed to save the course.' };
+  }
+}
+
+export async function renameCourse(
+  _prevState: RenameCourseState,
+  formData: FormData
+): Promise<RenameCourseState> {
+  const user = await requireUser();
+  const courseId = Number(formData.get('courseId'));
+  const rawName = (formData.get('name') ?? '').toString().trim();
+
+  if (!Number.isInteger(courseId)) {
+    return { ok: false, message: 'Invalid course id.' };
+  }
+
+  if (!rawName) {
+    return { ok: false, message: 'Please provide a course name.' };
+  }
+
+  try {
+    await prisma.course.update({
+      where: { id: courseId, ownerId: user.id },
+      data: { name: rawName },
+    });
+
+    revalidatePath('/courses');
+    revalidatePath('/');
+
+    return { ok: true, message: 'Course renamed' };
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      return {
+        ok: false,
+        message: 'You already have a course with that name.',
+      };
+    }
+
+    console.error('Failed to rename course', error);
+    return { ok: false, message: 'Failed to rename the course.' };
   }
 }
 
@@ -97,10 +144,10 @@ function parseIds(value: FormDataEntryValue | null): number[] {
 
 export async function resetCourseProgress(formData: FormData) {
   const user = await requireUser();
-  const courseId = Number(formData.get("courseId"));
+  const courseId = Number(formData.get('courseId'));
 
   if (!Number.isInteger(courseId)) {
-    throw new Error("Invalid course id");
+    throw new Error('Invalid course id');
   }
 
   const videos = await prisma.courseVideo.findMany({
@@ -120,22 +167,40 @@ export async function resetCourseProgress(formData: FormData) {
     });
   }
 
-  revalidatePath("/courses");
-  revalidatePath("/");
+  revalidatePath('/courses');
+  revalidatePath('/');
 }
 
 export async function deleteCourse(formData: FormData) {
   const user = await requireUser();
-  const courseId = Number(formData.get("courseId"));
+  const courseId = Number(formData.get('courseId'));
 
   if (!Number.isInteger(courseId)) {
-    throw new Error("Invalid course id");
+    throw new Error('Invalid course id');
   }
+
+  const courseVideos = await prisma.courseVideo.findMany({
+    where: {
+      course: { id: courseId, ownerId: user.id },
+    },
+    select: { videoId: true },
+  });
+
+  const videoIds = courseVideos.map((cv) => cv.videoId);
 
   await prisma.course.delete({
     where: { id: courseId, ownerId: user.id },
   });
 
-  revalidatePath("/courses");
-  revalidatePath("/");
+  if (videoIds.length > 0) {
+    await prisma.video.deleteMany({
+      where: {
+        id: { in: videoIds },
+        ownerId: user.id,
+      },
+    });
+  }
+
+  revalidatePath('/courses');
+  revalidatePath('/');
 }

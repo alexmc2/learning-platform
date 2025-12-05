@@ -33,6 +33,7 @@ export function HomePageContent({
   showImportButton = true,
   promptSave = false,
   hasSavedCourses = false,
+  showClearLibraryButton = false, // New prop
 }: {
   videos: Video[];
   currentId?: number;
@@ -44,6 +45,7 @@ export function HomePageContent({
   showImportButton?: boolean;
   promptSave?: boolean;
   hasSavedCourses?: boolean;
+  showClearLibraryButton?: boolean; // New prop type
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof document === 'undefined') return true;
@@ -77,6 +79,7 @@ export function HomePageContent({
             showImportButton={showImportButton}
             promptSaveModal={promptSave}
             hasSavedCourses={hasSavedCourses}
+            showClearLibraryButton={showClearLibraryButton} // Pass it down
           />
 
           {/* Main Content Area */}

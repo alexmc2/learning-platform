@@ -2,6 +2,7 @@
 
 Next.js App Router project for local and Jellyfin videos with Supabase auth + Prisma for persistence.
 
+
 ## Prerequisites
 - Node.js 20+
 - Supabase project (session pooler for IPv4)
@@ -41,3 +42,11 @@ alter default privileges for role postgres in schema public grant all on sequenc
 - Save current library/Jellyfin import as a course (manual “Save course” modal)
 - My Courses page (`/courses`) with progress summaries and resume links
 - Per-user video progress stored in Supabase via Prisma
+
+![alt text](/public/image.png)
+
+![alt text](/public/image2.png)
+
+![alt text](/public/image3.png)
+
+

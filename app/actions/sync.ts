@@ -51,12 +51,20 @@ export type SyncResult = {
 
 export async function clearAllVideos() {
   const user = await requireUser();
+
+  // FIXED: Only delete videos that are NOT part of any course (orphan/inbox videos)
   const deleted = await prisma.video.deleteMany({
-    where: { ownerId: user.id },
+    where: {
+      ownerId: user.id,
+      courseItems: {
+        none: {},
+      },
+    },
   });
+
   revalidatePath('/');
   revalidatePath('/courses');
-  console.log(`Cleared ${deleted.count} videos from library`);
+  console.log(`Cleared ${deleted.count} unassigned videos from library`);
 }
 
 export async function syncLibrary(
@@ -96,11 +104,13 @@ export async function syncLibrary(
     }
 
     if (mode === 'remove') {
+      // FIXED: Even when removing specific paths, preserve videos that are in a course
       const deleted = await prisma.video.deleteMany({
         where: {
           ownerId: user.id,
           path: { startsWith: root },
           NOT: { path: { startsWith: 'http' } },
+          courseItems: { none: {} }, // Add protection here too
         },
       });
 
@@ -109,7 +119,7 @@ export async function syncLibrary(
 
       return {
         ok: true,
-        message: `Removed ${deleted.count} video${
+        message: `Removed ${deleted.count} unassigned video${
           deleted.count === 1 ? '' : 's'
         } under "${path.basename(root)}".`,
       };
@@ -175,6 +185,7 @@ export async function syncLibrary(
           ownerId: user.id,
           path: { in: resolvedPaths },
           filename: { notIn: Array.from(foundFilenames) },
+          courseItems: { none: {} }, // Only clean up if not in a course
         },
       });
     }
@@ -193,11 +204,18 @@ export async function syncLibrary(
         .filter((filename) => !foundFilenames.has(filename));
 
       if (missingFilenames.length > 0) {
-        removedCount = missingFilenames.length;
-        console.log(`Removing ${removedCount} missing videos from DB.`);
-        await prisma.video.deleteMany({
-          where: { ownerId: user.id, filename: { in: missingFilenames } },
+        // FIXED: Only delete missing videos if they aren't part of a course
+        const result = await prisma.video.deleteMany({
+          where: {
+            ownerId: user.id,
+            filename: { in: missingFilenames },
+            courseItems: { none: {} },
+          },
         });
+        removedCount = result.count;
+        console.log(
+          `Removed ${removedCount} missing unassigned videos from DB.`
+        );
       }
     } else {
       console.log('Replace not selected; keeping existing local entries.');
@@ -304,6 +322,7 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
             { filename: { startsWith: prefix } },
             { filename: { notIn: keepKeysArray } },
           ],
+          courseItems: { none: {} }, // Only clean up unassigned videos
         },
       });
     }
@@ -315,6 +334,7 @@ export async function importJellyfinVideos(videos: JellyfinVideo[]) {
           ownerId: user.id,
           path: { in: paths },
           filename: { notIn: keepKeysArray },
+          courseItems: { none: {} }, // Only clean up unassigned videos
         },
       });
     }

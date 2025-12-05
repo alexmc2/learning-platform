@@ -48,6 +48,7 @@ export default async function CoursesPage() {
       completedLessons,
       nextVideoId: nextItem?.videoId,
       previewTitles: course.items.map((item) => item.video.title),
+      createdAt: course.createdAt.toISOString(),
     };
   });
 
