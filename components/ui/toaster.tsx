@@ -23,6 +23,7 @@ export function Toaster() {
         {toasts.map(({ id, ...toast }) => (
           <ToastCard
             key={id}
+            id={id}
             {...toast}
             onClose={() => {
               toast.onOpenChange?.(false);
