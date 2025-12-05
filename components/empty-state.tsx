@@ -106,6 +106,9 @@ export function EmptyState() {
               <p className="text-sm text-muted-foreground">
                 Scan your device&apos;s video folder.
               </p>
+              <p className="text-sm text-muted-foreground">
+                (Available on local machine only)
+              </p>
             </div>
           </div>
 

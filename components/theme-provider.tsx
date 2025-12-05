@@ -1,13 +1,6 @@
 "use client"
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react"
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
 
 type Theme = "light" | "dark"
 
@@ -29,21 +22,24 @@ export function ThemeProvider({
   initialTheme?: Theme
   children: ReactNode
 }) {
-  const [theme, setTheme] = useState<Theme>(initialTheme)
+  const [theme, setThemeState] = useState<Theme>(initialTheme)
 
-  useEffect(() => {
-    const root = document.documentElement
-    root.classList.toggle("dark", theme === "dark")
-    document.cookie = `${THEME_COOKIE_NAME}=${theme}; path=/; max-age=${THEME_COOKIE_MAX_AGE}`
-  }, [theme])
+  const applyTheme = useCallback((nextTheme: Theme) => {
+    setThemeState(nextTheme)
+    if (typeof document !== "undefined") {
+      const root = document.documentElement
+      root.classList.toggle("dark", nextTheme === "dark")
+      document.cookie = `${THEME_COOKIE_NAME}=${nextTheme}; path=/; max-age=${THEME_COOKIE_MAX_AGE}`
+    }
+  }, [])
 
   const value = useMemo(
     () => ({
       theme,
-      setTheme,
-      toggleTheme: () => setTheme((previous) => (previous === "dark" ? "light" : "dark")),
+      setTheme: applyTheme,
+      toggleTheme: () => applyTheme(theme === "dark" ? "light" : "dark"),
     }),
-    [theme]
+    [applyTheme, theme]
   )
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
