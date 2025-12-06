@@ -12,6 +12,7 @@ type SearchParams = {
   v?: string | string[];
   courseId?: string | string[];
   promptSave?: string | string[];
+  courseSaved?: string | string[];
 };
 
 type VideoWithProgress = Prisma.VideoGetPayload<{
@@ -26,6 +27,7 @@ export default async function Home({
   const user = await getCurrentUser();
   const resolvedSearchParams = await Promise.resolve(searchParams);
   const courseIdParam = parseId(resolvedSearchParams?.courseId);
+  const courseSaved = isParamTrue(resolvedSearchParams?.courseSaved);
 
   let rawVideos: VideoWithProgress[] = [];
 
@@ -144,6 +146,7 @@ export default async function Home({
       showSyncButton={canSync}
       showImportButton={showImportButton}
       promptSave={resolvedSearchParams?.promptSave === '1'}
+      courseSaved={courseSaved}
       hasSavedCourses={hasSavedCourses}
       showClearLibraryButton={showClearLibraryButton} // Pass the calculated flag
       user={
@@ -181,4 +184,9 @@ function parseId(value?: string | string[]) {
   if (!asString) return undefined;
   const parsed = Number(asString);
   return Number.isInteger(parsed) ? parsed : undefined;
+}
+
+function isParamTrue(value?: string | string[]) {
+  const asString = Array.isArray(value) ? value[0] : value;
+  return asString === '1' || asString === 'true';
 }

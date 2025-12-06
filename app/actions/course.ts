@@ -91,7 +91,7 @@ export async function saveCourse(
 
   // Perform redirect outside of try/catch to ensure proper Next.js handling
   if (courseId && firstVideoId) {
-    redirect(`/?courseId=${courseId}&v=${firstVideoId}`);
+    redirect(`/?courseId=${courseId}&v=${firstVideoId}&courseSaved=1`);
   }
 
   return { ok: true, message: 'Course saved' };

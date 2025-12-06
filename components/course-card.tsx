@@ -17,7 +17,7 @@ import {
   type JellyfinVideo,
 } from '@/components/connect-jellyfin-modal';
 import { ThemedBounceLoader } from '@/components/themed-bounce-loader';
-import { useToast } from '@/hooks/use-toast';
+// import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,7 +68,7 @@ export function CourseCard({
 }: CourseCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const { toast } = useToast();
+  // const { toast } = useToast();
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState(name);
   const [courseName, setCourseName] = useState(name);
@@ -121,11 +121,11 @@ export function CourseCard({
       window.location.reload();
     } catch (error) {
       console.error('Jellyfin import failed', error);
-      toast({
-        title: 'Import failed',
-        description: 'Failed to import videos. Please try again.',
-        variant: 'destructive',
-      });
+      // toast({
+      //   title: 'Import failed',
+      //   description: 'Failed to import videos. Please try again.',
+      //   variant: 'destructive',
+      // });
       setIsImporting(false);
     }
   };
