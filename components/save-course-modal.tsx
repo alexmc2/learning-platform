@@ -34,12 +34,15 @@ export function SaveCourseModal({
   forceOpen = false,
 }: SaveCourseModalProps) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, isPending] = useActionState(saveCourse, initialState);
+  const [state, formAction, isPending] = useActionState(
+    saveCourse,
+    initialState
+  );
   const videoIds = useMemo(() => videos.map((video) => video.id), [videos]);
 
   const defaultName = useMemo(() => {
     const sections = Array.from(
-      new Set(videos.map((video) => video.section).filter(Boolean)),
+      new Set(videos.map((video) => video.section).filter(Boolean))
     );
     if (sections.length === 1) return `${sections[0]} Course`;
     if (videos.length > 0) return `${videos.length} Lesson Course`;
@@ -80,9 +83,7 @@ export function SaveCourseModal({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Save this course</DialogTitle>
-          <DialogDescription>
-            Please enter a course name
-          </DialogDescription>
+          <DialogDescription>Please enter a course name</DialogDescription>
         </DialogHeader>
 
         <form action={formAction} className="space-y-4">
@@ -111,7 +112,7 @@ export function SaveCourseModal({
               <span
                 className={cn(
                   'flex items-center gap-2 text-xs',
-                  state.ok ? 'text-emerald-600' : 'text-destructive',
+                  state.ok ? 'text-emerald-600' : 'text-destructive'
                 )}
               >
                 {state.ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}

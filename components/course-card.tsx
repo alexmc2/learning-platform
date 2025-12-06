@@ -272,7 +272,7 @@ export function CourseCard({
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
-                    <AlertDialogAction type="submit" className="cursor-pointer">
+                    <AlertDialogAction type="submit" className="cursor-pointer bg-destructive dark:bg-destructive/70 text-white hover:bg-destructive/90">
                       Delete course
                     </AlertDialogAction>
                   </AlertDialogFooter>
