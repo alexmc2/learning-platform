@@ -98,11 +98,11 @@ export function HomePageContent({
           />
 
           {/* Main content wrapper */}
-          <div className="flex flex-1 min-h-0 w-full flex-col overflow-y-auto bg-muted/20">
+          <div className="flex flex-1 min-h-0 w-full flex-col">
             {/* justify-start + my-auto ensures content is centered if space allows, 
                 but scrolls naturally if content is taller than viewport.
             */}
-            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-start py-6 md:justify-center md:py-8">
+            <div className="mx-auto flex w-full flex-1 flex-col justify-start md:justify-center ">
               {currentVideo ? (
                 <div className="my-auto w-full">
                   <VideoPlayer

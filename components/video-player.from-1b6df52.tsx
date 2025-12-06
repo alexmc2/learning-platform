@@ -37,7 +37,6 @@ type VideoPlayerProps = {
     completed: boolean;
     duration: number | null;
     path: string;
-    section?: string;
   };
   prevId?: number;
   nextId?: number;
@@ -57,8 +56,6 @@ export function VideoPlayer({
   const fileLabel = getFileLabel(video.path);
   const nextCompletedValue = (!video.completed).toString();
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  // State
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -68,16 +65,12 @@ export function VideoPlayer({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isTouch, setIsTouch] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
   const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
   const getLink = (id: number) => {
     return courseId ? `/?courseId=${courseId}&v=${id}` : `/?v=${id}`;
   };
 
-  // -- Effects --
-
-  // Handle Fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
       const activeElement = document.fullscreenElement;
@@ -89,7 +82,6 @@ export function VideoPlayer({
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Handle Playback Rate
   useEffect(() => {
     const el = videoRef.current;
     if (el) {
@@ -97,7 +89,6 @@ export function VideoPlayer({
     }
   }, [playbackRate]);
 
-  // Handle Touch Detection
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(pointer: coarse)');
@@ -109,11 +100,10 @@ export function VideoPlayer({
       mql.addEventListener('change', updateTouch);
       return () => mql.removeEventListener('change', updateTouch);
     }
+    // Fallback for older browsers
     mql.addListener(updateTouch);
     return () => mql.removeListener(updateTouch);
   }, []);
-
-  // -- Handlers --
 
   const describePlaybackIssue = (
     mediaError?: MediaError | null,
@@ -133,12 +123,14 @@ export function VideoPlayer({
           return 'Video playback failed.';
       }
     }
+
     if (
       domError instanceof DOMException &&
       domError.name === 'NotSupportedError'
     ) {
       return 'This browser cannot play the provided video source.';
     }
+
     return 'Video playback failed.';
   };
 
@@ -231,18 +223,17 @@ export function VideoPlayer({
 
   const renderControls = (mode: 'overlay' | 'stacked') => {
     const isOverlay = mode === 'overlay';
-
-    // CSS for switching between Overlay (Desktop) and Stacked (Mobile)
     const visibilityClass = isOverlay
       ? 'pointer-events-none absolute inset-x-0 bottom-0 pb-3 opacity-0 transition-opacity duration-200 group-hover/video:opacity-100 group-focus-within/video:opacity-100'
-      : 'w-full pt-3'; 
-    const paddingClass = isOverlay ? 'px-4' : 'px-1';
+      : 'w-full pt-2';
+    const paddingClass = isOverlay ? 'px-4' : 'px-3';
     const seekWrapperClass = isOverlay ? 'pointer-events-auto' : '';
-    const shellClass = 'flex flex-wrap items-center gap-3';
+    const shellClass = isOverlay
+      ? 'pointer-events-auto flex flex-wrap items-center gap-3'
+      : 'flex flex-wrap items-center gap-3';
 
     return (
-      <div className={`${visibilityClass} flex flex-col gap-2 px-6`}>
-        {/* Seek Bar */}
+      <div className={`${visibilityClass} flex flex-col gap-3`}>
         <div className={`${seekWrapperClass} ${paddingClass}`}>
           <input
             type="range"
@@ -251,43 +242,39 @@ export function VideoPlayer({
             step={0.1}
             value={currentTime}
             onChange={(e) => handleSeek(Number(e.target.value))}
-            className="sm:h-2 h-1 w-full cursor-pointer appearance-none rounded-full bg-white/20 outline-none"
+            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/20 outline-none"
             style={{
               background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${progressPercent}%, rgba(0,0,0,0.45) ${progressPercent}%, rgba(0,0,0,0.45) 100%)`,
             }}
             aria-label="Seek"
           />
         </div>
-
-        {/* Buttons Row */}
         <div className={`${shellClass} ${paddingClass}`}>
-          <div className="flex items-center gap-2 rounded-md bg-black/60 px-2 py-1.5 md:gap-3 md:px-3 md:py-2">
+          <div className="flex items-center gap-3 rounded-md bg-black/60 px-3 py-2">
             <button
               type="button"
               onClick={togglePlay}
-              className="grid h-8 w-8 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20 md:h-10 md:w-10"
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
               aria-label={isPlaying ? 'Pause video' : 'Play video'}
             >
               {isPlaying ? (
-                <Pause className="h-4 w-4 md:h-5 md:w-5" />
+                <Pause className="h-5 w-5" />
               ) : (
-                <Play className="h-4 w-4 md:h-5 md:w-5" />
+                <Play className="h-5 w-5" />
               )}
             </button>
             <button
               type="button"
               onClick={toggleMute}
-              className="grid h-8 w-8 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20 md:h-10 md:w-10"
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
               aria-label={isMuted ? 'Unmute' : 'Mute'}
             >
               {isMuted || volume === 0 ? (
-                <VolumeX className="h-4 w-4 md:h-5 md:w-5" />
+                <VolumeX className="h-5 w-5" />
               ) : (
-                <Volume2 className="h-4 w-4 md:h-5 md:w-5" />
+                <Volume2 className="h-5 w-5" />
               )}
             </button>
-
-            {/* Hidden volume slider on very small screens to save space */}
             <input
               type="range"
               min={0}
@@ -295,11 +282,10 @@ export function VideoPlayer({
               step={0.05}
               value={isMuted ? 0 : volume}
               onChange={(e) => handleVolumeChange(Number(e.target.value))}
-              className="hidden h-1 w-16 cursor-pointer accent-white sm:block md:w-24"
+              className="h-1 w-24 cursor-pointer accent-white"
               aria-label="Volume"
             />
-
-            <div className="ml-1 flex items-center gap-1 text-[10px] font-medium text-white/80 md:ml-2 md:text-xs">
+            <div className="ml-2 flex items-center gap-1 text-xs font-medium text-white/80">
               <span className="tabular-nums">
                 {formatDuration(Math.floor(currentTime))}
               </span>
@@ -309,13 +295,15 @@ export function VideoPlayer({
               </span>
             </div>
           </div>
-
-          <div className="ml-auto flex items-center gap-2 rounded-md bg-black/60 px-2 py-1.5 md:gap-3 md:px-3 md:py-2">
+          <div className="ml-auto flex items-center gap-3 rounded-md bg-black/60 px-3 py-2">
+            <label className="sr-only" htmlFor="playback-rate">
+              Playback speed
+            </label>
             <select
               id="playback-rate"
               value={playbackRate}
               onChange={(e) => setPlaybackRate(Number(e.target.value))}
-              className="cursor-pointer rounded-md bg-white/10 px-2 py-1 text-[10px] font-medium text-white outline-none transition hover:bg-white/20 md:px-3 md:py-2 md:text-xs"
+              className="cursor-pointer rounded-md bg-white/10 px-3 py-2 text-xs font-medium text-white outline-none transition hover:bg-white/20"
               style={{ cursor: 'pointer' }}
             >
               {playbackSpeeds.map((rate) => (
@@ -327,13 +315,13 @@ export function VideoPlayer({
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="grid h-8 w-8 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20 md:h-10 md:w-10"
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
               {isFullscreen ? (
-                <Minimize2 className="h-4 w-4 md:h-5 md:w-5" />
+                <Minimize2 className="h-5 w-5" />
               ) : (
-                <Maximize2 className="h-4 w-4 md:h-5 md:w-5" />
+                <Maximize2 className="h-5 w-5" />
               )}
             </button>
           </div>
@@ -343,7 +331,7 @@ export function VideoPlayer({
   };
 
   return (
-    <Card className="flex w-full flex-col overflow-hidden border-none bg-background shadow-none sm:px-6 px-0">
+    <Card className="flex w-full flex-col overflow-hidden bg-background shadow-none border-none px-6">
       <CardContent className="p-0">
         <div className="flex w-full flex-col items-center justify-center gap-3">
           <div className="group/video relative aspect-video w-full max-h-[70vh] overflow-hidden bg-background">
@@ -360,13 +348,10 @@ export function VideoPlayer({
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             />
-            {/* Desktop: Overlay controls (visible on hover) */}
             {!isTouch && renderControls('overlay')}
           </div>
-          {/* Mobile: Stacked controls (always visible below video) */}
           {isTouch && renderControls('stacked')}
         </div>
-
         {errorMessage ? (
           <div
             role="status"
@@ -392,7 +377,6 @@ export function VideoPlayer({
           </div>
         ) : null}
       </CardContent>
-
       <CardHeader className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
           {video.completed ? (
@@ -415,66 +399,11 @@ export function VideoPlayer({
             {video.duration ? `~${formatDuration(video.duration)}` : fileLabel}
           </CardDescription>
         </div>
-        <div className="flex flex-col gap-1">
-          {video.section ? (
-            <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              {video.section}
-            </p>
-          ) : null}
-          <CardTitle className="text-2xl font-semibold leading-tight">
-            {video.title}
-          </CardTitle>
-        </div>
+        <CardTitle className="text-2xl font-semibold leading-tight">
+          {video.title}
+        </CardTitle>
       </CardHeader>
-
-      {/* Mobile Footer Layout */}
-      <CardFooter className="flex flex-col gap-3 border-t border-border/60 px-6 py-4 md:hidden">
-        <div className="grid w-full grid-cols-2 gap-3">
-          {prevId ? (
-            <Button asChild variant="default" size="lg" className="w-full">
-              <Link href={getLink(prevId)}>
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Previous
-              </Link>
-            </Button>
-          ) : (
-            <Button variant="default" size="lg" disabled className="w-full">
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Previous
-            </Button>
-          )}
-          {nextId ? (
-            <Button asChild variant="default" size="lg" className="w-full">
-              <Link href={getLink(nextId)}>
-                Next
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          ) : (
-            <Button variant="default" size="lg" disabled className="w-full">
-              Next
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          )}
-        </div>
-
-        <form action={setVideoCompletion} className="w-full">
-          <input type="hidden" name="videoId" value={video.id} />
-          <input type="hidden" name="completed" value={nextCompletedValue} />
-          <Button
-            type="submit"
-            size="lg"
-            disabled={!canTrackProgress}
-            variant={video.completed ? 'default' : 'default'}
-            className="w-full"
-          >
-            {video.completed ? 'Mark as Incomplete' : 'Mark as Complete'}
-          </Button>
-        </form>
-      </CardFooter>
-
-     {/* Desktop Footer Layout */}
-      <CardFooter className="hidden flex-wrap items-center gap-3  md:flex">
+      <CardFooter className="flex flex-wrap items-center gap-3 border-t border-border/60 px-6 py-4">
         <div className="flex items-center gap-2">
           {prevId ? (
             <Button asChild variant="default" size="lg">

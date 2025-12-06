@@ -53,11 +53,10 @@ export function PageHeader({
 }: PageHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Helper to render buttons cleanly
   const renderActionButtons = (isMobile: boolean) => {
-    // Mobile buttons: larger, left-aligned text, extra padding
     const btnSize = isMobile ? 'default' : 'sm';
-    const btnClass = isMobile ? 'w-full justify-start pl-4' : '';
+    // FIXED: Added explicit padding (px-4) for sidebar buttons and justify-start
+    const btnClass = isMobile ? 'w-full justify-start px-4' : '';
 
     return (
       <>
@@ -132,7 +131,7 @@ export function PageHeader({
               <div className="w-full pt-4 border-t mt-2">
                 <LogoutButton
                   size={btnSize}
-                  className="w-full justify-start pl-4"
+                  className="w-full justify-start px-4"
                 />
               </div>
             )}
@@ -162,7 +161,6 @@ export function PageHeader({
   };
 
   return (
-    // Z-index lowered to 40 to ensure Sheet (z-50) sits on top
     <header className="sticky top-0 z-40 flex shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-white/95 px-4 py-2 backdrop-blur dark:bg-background lg:px-8 lg:py-4">
       <div className="flex items-center gap-3">
         {showSidebarTrigger && <SidebarTrigger />}
@@ -188,9 +186,10 @@ export function PageHeader({
               <Menu className="size-6" />
             </Button>
           </SheetTrigger>
+          {/* Added p-6 to ensure content is not hugging the edge */}
           <SheetContent
             side="right"
-            className="w-[85vw] sm:w-[350px] overflow-y-auto"
+            className="w-[85vw] sm:w-[350px] p-6 overflow-y-auto"
           >
             <SheetHeader>
               <SheetTitle className="text-left text-lg font-bold">
