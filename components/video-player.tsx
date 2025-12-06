@@ -53,6 +53,7 @@ export function VideoPlayer({
   const courseId = searchParams.get('courseId');
   const isRemote = video.path.startsWith('http');
   const streamUrl = isRemote ? video.path : `/api/stream?id=${video.id}`;
+  const fileLabel = getFileLabel(video.path);
   const nextCompletedValue = (!video.completed).toString();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -395,7 +396,7 @@ export function VideoPlayer({
           <Separator orientation="vertical" className="h-6" />
           <CardDescription className="flex items-center gap-2 text-sm">
             <Film className="h-4 w-4" />
-            {video.duration ? `~${formatDuration(video.duration)}` : 'MP4'}
+            {video.duration ? `~${formatDuration(video.duration)}` : fileLabel}
           </CardDescription>
         </div>
         <CardTitle className="text-2xl font-semibold leading-tight">
@@ -455,4 +456,13 @@ function formatDuration(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function getFileLabel(filePath: string) {
+  const cleanPath = filePath.split(/[?#]/)[0] || '';
+  const parts = cleanPath.split(/[/\\]/);
+  const filename = parts[parts.length - 1] || '';
+  const dotIndex = filename.lastIndexOf('.');
+  if (dotIndex <= 0) return 'Video';
+  return filename.slice(dotIndex + 1).toUpperCase();
 }

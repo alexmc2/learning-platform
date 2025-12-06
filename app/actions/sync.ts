@@ -7,8 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { VIDEO_ROOT } from '@/lib/constants';
 import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/supabase/server';
-
-const VIDEO_EXTENSIONS = new Set(['.mp4', '.mkv', '.webm']);
+import { isVideoPath } from '@/lib/video';
 
 function titleFromFilename(filename: string) {
   const base = path.parse(filename).name;
@@ -29,8 +28,7 @@ async function collectVideoFiles(dir: string): Promise<string[]> {
       if (entry.isDirectory()) {
         return collectVideoFiles(fullPath);
       }
-      const ext = path.extname(entry.name).toLowerCase();
-      if (VIDEO_EXTENSIONS.has(ext)) {
+      if (isVideoPath(entry.name)) {
         return [fullPath];
       }
       return [];

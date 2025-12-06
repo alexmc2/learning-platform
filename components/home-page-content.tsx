@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
+import { toast } from 'sonner'; // <--- CHANGED: Import directly from sonner
 
 import { AppSidebar } from '@/components/app-sidebar';
 import { PageHeader } from '@/components/page-header';
@@ -32,8 +33,9 @@ export function HomePageContent({
   showSyncButton = false,
   showImportButton = true,
   promptSave = false,
+  courseSaved = false,
   hasSavedCourses = false,
-  showClearLibraryButton = false, // New prop
+  showClearLibraryButton = false,
 }: {
   videos: Video[];
   currentId?: number;
@@ -44,8 +46,9 @@ export function HomePageContent({
   showSyncButton?: boolean;
   showImportButton?: boolean;
   promptSave?: boolean;
+  courseSaved?: boolean;
   hasSavedCourses?: boolean;
-  showClearLibraryButton?: boolean; // New prop type
+  showClearLibraryButton?: boolean;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof document === 'undefined') return true;
@@ -55,6 +58,22 @@ export function HomePageContent({
       ?.split('=')[1];
     return stored !== undefined ? stored === 'true' : true;
   });
+
+  // REMOVED: const { toast } = useToast();
+
+  useEffect(() => {
+    if (courseSaved) {
+      // CHANGED: Use toast.success directly.
+      // This triggers the data-[type=success] styles in your sonner.tsx (Violet-700)
+      toast.success('Course saved successfully', {
+        description: 'Your progress is now being tracked.',
+      });
+
+      const url = new URL(window.location.href);
+      url.searchParams.delete('courseSaved');
+      window.history.replaceState({}, '', url);
+    }
+  }, [courseSaved]);
 
   return (
     <SidebarProvider
@@ -79,10 +98,9 @@ export function HomePageContent({
             showImportButton={showImportButton}
             promptSaveModal={promptSave}
             hasSavedCourses={hasSavedCourses}
-            showClearLibraryButton={showClearLibraryButton} // Pass it down
+            showClearLibraryButton={showClearLibraryButton}
           />
 
-          {/* Main Content Area */}
           <div className="flex flex-1 min-h-0 items-center justify-center overflow-y-auto overflow-x-hidden bg-muted/20">
             <div className="w-full max-w-full">
               {currentVideo ? (

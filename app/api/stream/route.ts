@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/supabase/server';
+import { getVideoMimeType } from '@/lib/video';
 
 export const runtime = 'nodejs';
 
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
   }
 
   const rangeHeader = req.headers.get('range');
-  const contentType = 'video/mp4';
+  const contentType = getVideoMimeType(resolvedPath);
 
   if (!rangeHeader) {
     const stream = fs.createReadStream(resolvedPath);

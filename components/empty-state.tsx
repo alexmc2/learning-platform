@@ -10,7 +10,7 @@ import {
   type JellyfinVideo,
 } from '@/components/connect-jellyfin-modal';
 import { ThemedBounceLoader } from '@/components/themed-bounce-loader';
-import { useToast } from '@/hooks/use-toast';
+// import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { importJellyfinVideos } from '@/app/actions/sync';
 
@@ -42,7 +42,7 @@ function YouTubeLogo({ className }: { className?: string }) {
 
 export function EmptyState() {
   const [isImporting, setIsImporting] = useState(false);
-  const { toast } = useToast();
+  // const { toast } = useToast();
 
   const handleConnected = async (videos: JellyfinVideo[]) => {
     if (!videos.length) return;
@@ -57,12 +57,12 @@ export function EmptyState() {
       window.location.href = '/?promptSave=1&source=jellyfin';
     } catch (error) {
       console.error('Jellyfin import failed', error);
-      toast({
-        title: 'Import failed',
-        description:
-          'Something went wrong while importing your videos. Please try again.',
-        variant: 'destructive',
-      });
+      // toast({
+      //   title: 'Import failed',
+      //   description:
+      //     'Something went wrong while importing your videos. Please try again.',
+      //   variant: 'destructive',
+      // });
       setIsImporting(false);
     }
   };
