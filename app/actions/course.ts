@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@/lib/generated/prisma/client';
@@ -49,8 +50,12 @@ export async function saveCourse(
     }
   }
 
+  // Variables to hold IDs for redirection after the try/catch block
+  let courseId: number | undefined;
+  let firstVideoId: number | undefined;
+
   try {
-    await prisma.course.create({
+    const course = await prisma.course.create({
       data: {
         name: rawName,
         ownerId: user.id,
@@ -63,10 +68,12 @@ export async function saveCourse(
       },
     });
 
+    // Capture IDs for redirect
+    courseId = course.id;
+    firstVideoId = uniqueIds[0];
+
     revalidatePath('/');
     revalidatePath('/courses');
-
-    return { ok: true, message: 'Course saved' };
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -81,6 +88,13 @@ export async function saveCourse(
     console.error('Failed to save course', error);
     return { ok: false, message: 'Failed to save the course.' };
   }
+
+  // Perform redirect outside of try/catch to ensure proper Next.js handling
+  if (courseId && firstVideoId) {
+    redirect(`/?courseId=${courseId}&v=${firstVideoId}`);
+  }
+
+  return { ok: true, message: 'Course saved' };
 }
 
 export async function renameCourse(
