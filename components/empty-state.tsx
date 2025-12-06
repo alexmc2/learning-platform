@@ -10,7 +10,6 @@ import {
   type JellyfinVideo,
 } from '@/components/connect-jellyfin-modal';
 import { ThemedBounceLoader } from '@/components/themed-bounce-loader';
-// import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { importJellyfinVideos } from '@/app/actions/sync';
 
@@ -42,7 +41,6 @@ function YouTubeLogo({ className }: { className?: string }) {
 
 export function EmptyState() {
   const [isImporting, setIsImporting] = useState(false);
-  // const { toast } = useToast();
 
   const handleConnected = async (videos: JellyfinVideo[]) => {
     if (!videos.length) return;
@@ -57,18 +55,13 @@ export function EmptyState() {
       window.location.href = '/?promptSave=1&source=jellyfin';
     } catch (error) {
       console.error('Jellyfin import failed', error);
-      // toast({
-      //   title: 'Import failed',
-      //   description:
-      //     'Something went wrong while importing your videos. Please try again.',
-      //   variant: 'destructive',
-      // });
       setIsImporting(false);
     }
   };
 
   return (
-    <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center justify-center gap-12 px-6 py-10">
+    // Changed: Removed absolute positioning and updated justification for better mobile flow
+    <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center justify-start gap-8 px-6 py-10 md:justify-center md:gap-12">
       {isImporting ? (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-3xl bg-background/90 backdrop-blur-sm">
           <ThemedBounceLoader
@@ -85,10 +78,10 @@ export function EmptyState() {
         </div>
       ) : null}
       <div className="text-center space-y-4 max-w-lg">
-        <h2 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
+        <h2 className="text-3xl font-extrabold tracking-tight lg:text-5xl">
           Ready to Learn?
         </h2>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-base text-muted-foreground lg:text-lg">
           Connect a media source to populate your library and start tracking
           your progress.
         </p>

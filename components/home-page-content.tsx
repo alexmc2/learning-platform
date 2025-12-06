@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, type CSSProperties } from 'react';
-import { toast } from 'sonner'; // <--- CHANGED: Import directly from sonner
+import { toast } from 'sonner';
 
 import { AppSidebar } from '@/components/app-sidebar';
 import { PageHeader } from '@/components/page-header';
@@ -59,12 +59,8 @@ export function HomePageContent({
     return stored !== undefined ? stored === 'true' : true;
   });
 
-  // REMOVED: const { toast } = useToast();
-
   useEffect(() => {
     if (courseSaved) {
-      // CHANGED: Use toast.success directly.
-      // This triggers the data-[type=success] styles in your sonner.tsx (Violet-700)
       toast.success('Course saved successfully', {
         description: 'Your progress is now being tracked.',
       });
@@ -81,9 +77,9 @@ export function HomePageContent({
       onOpenChange={setSidebarOpen}
       style={
         {
-          '--sidebar-width': '22rem',
-          '--sidebar-width-mobile': '23rem',
-          '--sidebar-width-icon': '4.25rem',
+          '--sidebar-width': '20rem',
+          '--sidebar-width-mobile': '18rem',
+          '--sidebar-width-icon': '3rem',
         } as CSSProperties
       }
     >
@@ -101,18 +97,26 @@ export function HomePageContent({
             showClearLibraryButton={showClearLibraryButton}
           />
 
-          <div className="flex flex-1 min-h-0 items-center justify-center overflow-y-auto overflow-x-hidden bg-muted/20">
-            <div className="w-full max-w-full">
+          {/* Main content wrapper */}
+          <div className="flex flex-1 min-h-0 w-full flex-col overflow-y-auto bg-muted/20">
+            {/* justify-start + my-auto ensures content is centered if space allows, 
+                but scrolls naturally if content is taller than viewport.
+            */}
+            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-start py-6 md:justify-center md:py-8">
               {currentVideo ? (
-                <VideoPlayer
-                  key={currentVideo.id}
-                  video={currentVideo}
-                  prevId={prevId}
-                  nextId={nextId}
-                  canTrackProgress={Boolean(user)}
-                />
+                <div className="my-auto w-full">
+                  <VideoPlayer
+                    key={currentVideo.id}
+                    video={currentVideo}
+                    prevId={prevId}
+                    nextId={nextId}
+                    canTrackProgress={Boolean(user)}
+                  />
+                </div>
               ) : (
-                <EmptyState />
+                <div className="my-auto flex w-full flex-1 items-center justify-center p-4">
+                  <EmptyState />
+                </div>
               )}
             </div>
           </div>

@@ -17,12 +17,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
 type LogoutButtonProps = {
   size?: 'sm' | 'default' | 'lg';
+  className?: string;
 };
 
-export function LogoutButton({ size = 'sm' }: LogoutButtonProps) {
+export function LogoutButton({ size = 'sm', className }: LogoutButtonProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -41,7 +43,7 @@ export function LogoutButton({ size = 'sm' }: LogoutButtonProps) {
           variant="outline"
           size={size}
           disabled={isPending}
-          className="gap-2"
+          className={cn('gap-2', className)}
         >
           <LogOut className="h-4 w-4" />
           Log out
@@ -55,11 +57,10 @@ export function LogoutButton({ size = 'sm' }: LogoutButtonProps) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Stay signed in</AlertDialogCancel>
-          <AlertDialogAction
-            asChild
-            disabled={isPending}
-          >
+          <AlertDialogCancel disabled={isPending}>
+            Stay signed in
+          </AlertDialogCancel>
+          <AlertDialogAction asChild disabled={isPending}>
             <Button
               variant="destructive"
               size="sm"
