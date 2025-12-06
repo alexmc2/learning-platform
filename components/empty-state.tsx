@@ -60,8 +60,7 @@ export function EmptyState() {
   };
 
   return (
-    // Changed: Removed absolute positioning and updated justification for better mobile flow
-    <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center justify-start gap-8 px-6 py-10 md:justify-center md:gap-12">
+    <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center justify-start gap-8 sm:px-6 px-2 py-10 md:justify-center md:gap-12">
       {isImporting ? (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-3xl bg-background/90 backdrop-blur-sm">
           <ThemedBounceLoader
