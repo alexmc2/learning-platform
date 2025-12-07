@@ -36,6 +36,7 @@ export function HomePageContent({
   courseSaved = false,
   hasSavedCourses = false,
   showClearLibraryButton = false,
+  initialSidebarOpen = true,
 }: {
   videos: Video[];
   currentId?: number;
@@ -49,15 +50,9 @@ export function HomePageContent({
   courseSaved?: boolean;
   hasSavedCourses?: boolean;
   showClearLibraryButton?: boolean;
+  initialSidebarOpen?: boolean;
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof document === 'undefined') return true;
-    const stored = document.cookie
-      .split('; ')
-      .find((entry) => entry.startsWith('sidebar_state='))
-      ?.split('=')[1];
-    return stored !== undefined ? stored === 'true' : true;
-  });
+  const [sidebarOpen, setSidebarOpen] = useState(initialSidebarOpen);
 
   useEffect(() => {
     if (courseSaved) {
@@ -70,6 +65,24 @@ export function HomePageContent({
       window.history.replaceState({}, '', url);
     }
   }, [courseSaved]);
+
+  if (videos.length === 0) {
+    return (
+      <div className="flex min-h-screen flex-col bg-muted/10 overflow-y-auto">
+        <PageHeader
+          user={user}
+          videos={[]}
+          showImportButton={false}
+          onImportPage
+        />
+        <main className="flex w-full flex-1 flex-col items-start justify-start px-4 py-8 md:items-center md:justify-center md:py-10">
+          <div className="w-full max-w-6xl my-auto">
+            <EmptyState />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider
@@ -84,7 +97,7 @@ export function HomePageContent({
       }
     >
       <AppSidebar videos={videos} currentId={currentId} />
-      <SidebarInset className="flex h-screen w-screen min-w-0 overflow-hidden bg-background text-foreground">
+      <SidebarInset className="flex min-h-svh w-full min-w-0 overflow-x-hidden bg-background text-foreground">
         <div className="flex h-full w-full min-w-0 flex-col">
           <PageHeader
             user={user}

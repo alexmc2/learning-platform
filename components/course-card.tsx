@@ -283,8 +283,8 @@ export function CourseCard({
         </div>
       </div>
       <CardHeader className="pr-12">
-        <CardTitle className="text-lg">
-          <span className="truncate">{courseName}</span>
+        <CardTitle className="text-lg min-w-0">
+          <span className="block truncate">{courseName}</span>
         </CardTitle>
         <span className="text-sm font-normal text-foreground/80">
           {completedLessons}/{totalLessons} complete

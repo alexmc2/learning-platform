@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import {
   CheckCircle2,
   ChevronLeft,
@@ -68,6 +68,7 @@ export function VideoPlayer({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isTouch, setIsTouch] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [controlsVisible, setControlsVisible] = useState(false);
 
   const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
@@ -102,7 +103,11 @@ export function VideoPlayer({
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(pointer: coarse)');
     const updateTouch = (event?: MediaQueryListEvent) => {
-      setIsTouch(event ? event.matches : mql.matches);
+      const matches = event ? event.matches : mql.matches;
+      setIsTouch(matches);
+      if (matches) {
+        setControlsVisible(true);
+      }
     };
     updateTouch();
     if (mql.addEventListener) {
@@ -229,21 +234,45 @@ export function VideoPlayer({
       ? Math.min(100, (currentTime / duration) * 100)
       : 0;
 
-  const renderControls = (mode: 'overlay' | 'stacked') => {
-    const isOverlay = mode === 'overlay';
+  const handleVideoAreaClick = (event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('[data-video-controls="true"]')) {
+      return;
+    }
+    if (!isTouch) {
+      const coarse = window.matchMedia
+        ? window.matchMedia('(pointer: coarse)').matches
+        : false;
+      if (coarse) {
+        setIsTouch(true);
+        setControlsVisible(true);
+        return;
+      }
+      togglePlay();
+      return;
+    }
+    setControlsVisible((prev) => !prev);
+  };
 
-    // CSS for switching between Overlay (Desktop) and Stacked (Mobile)
-    const visibilityClass = isOverlay
-      ? 'pointer-events-none absolute inset-x-0 bottom-0 pb-3 opacity-0 transition-opacity duration-200 group-hover/video:opacity-100 group-focus-within/video:opacity-100'
-      : 'w-full pt-3'; 
-    const paddingClass = isOverlay ? 'px-4' : 'px-1';
-    const seekWrapperClass = isOverlay ? 'pointer-events-auto' : '';
+  const renderControls = () => {
+    const baseVisibility =
+      'absolute inset-x-0 bottom-0 z-10 pb-3 transition-opacity duration-200';
+    const hoverVisibility = !isTouch
+      ? 'group-hover/video:opacity-100 group-hover/video:pointer-events-auto group-focus-within/video:opacity-100 group-focus-within/video:pointer-events-auto'
+      : '';
+    const manualVisibility = controlsVisible
+      ? 'opacity-100 pointer-events-auto'
+      : 'opacity-0 pointer-events-none';
     const shellClass = 'flex flex-wrap items-center gap-3';
 
     return (
-      <div className={`${visibilityClass} flex flex-col gap-2 px-6`}>
+      <div
+        data-video-controls="true"
+        className={`${baseVisibility} ${hoverVisibility} ${manualVisibility} flex flex-col gap-2 px-2 sm:px-4`}
+        onClick={(event) => event.stopPropagation()}
+      >
         {/* Seek Bar */}
-        <div className={`${seekWrapperClass} ${paddingClass}`}>
+        <div className="pointer-events-auto px-2 sm:px-0">
           <input
             type="range"
             min={0}
@@ -260,7 +289,7 @@ export function VideoPlayer({
         </div>
 
         {/* Buttons Row */}
-        <div className={`${shellClass} ${paddingClass}`}>
+        <div className={`${shellClass} px-0 sm:px-2`}>
           <div className="flex items-center gap-2 rounded-md bg-black/60 px-2 py-1.5 md:gap-3 md:px-3 md:py-2">
             <button
               type="button"
@@ -346,25 +375,25 @@ export function VideoPlayer({
     <Card className="flex w-full flex-col overflow-hidden border-none bg-background shadow-none sm:px-6 px-0">
       <CardContent className="p-0">
         <div className="flex w-full flex-col items-center justify-center gap-3">
-          <div className="group/video relative aspect-video w-full max-h-[70vh] overflow-hidden bg-background">
+          <div
+            className="group/video relative aspect-video w-full max-h-[70vh] overflow-hidden bg-background"
+            onClick={handleVideoAreaClick}
+          >
             <video
               ref={videoRef}
               key={video.id}
               className="h-full w-full cursor-pointer bg-background object-contain"
               preload="metadata"
               src={streamUrl}
-              onClick={togglePlay}
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleLoadedMetadata}
               onError={handleVideoError}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             />
-            {/* Desktop: Overlay controls (visible on hover) */}
-            {!isTouch && renderControls('overlay')}
+            {/* Overlay controls (hover on desktop, tap to toggle on touch) */}
+            {renderControls()}
           </div>
-          {/* Mobile: Stacked controls (always visible below video) */}
-          {isTouch && renderControls('stacked')}
         </div>
 
         {errorMessage ? (
@@ -473,8 +502,8 @@ export function VideoPlayer({
         </form>
       </CardFooter>
 
-     {/* Desktop Footer Layout */}
-      <CardFooter className="hidden flex-wrap items-center gap-3  md:flex">
+      {/* Desktop Footer Layout */}
+      <CardFooter className="hidden flex-wrap items-center gap-3 md:flex">
         <div className="flex items-center gap-2">
           {prevId ? (
             <Button asChild variant="default" size="lg">

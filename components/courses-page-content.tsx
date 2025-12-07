@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { PageHeader } from '@/components/page-header';
@@ -44,6 +45,7 @@ export function CoursesPageContent({
   user: SessionUser;
   courses: CourseSummary[];
 }) {
+  const router = useRouter();
   const [sort, setSort] = useState<SortOption>(() => {
     if (typeof window === 'undefined') return 'newest';
     const stored = window.localStorage.getItem(SORT_STORAGE_KEY);
@@ -58,11 +60,17 @@ export function CoursesPageContent({
     }
     return 'newest';
   });
+  const [canGoBack, setCanGoBack] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SORT_STORAGE_KEY, sort);
   }, [sort]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setCanGoBack(window.history.length > 1);
+  }, []);
 
   const sortedCourses = useMemo(() => {
     const getProgress = (course: CourseSummary) =>
@@ -91,11 +99,26 @@ export function CoursesPageContent({
     <div className="flex min-h-screen flex-col bg-muted/10">
       <PageHeader user={user} videos={[]} onCoursesPage showImportButton />
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8">
+        <div className="flex w-full justify-start">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="px-0 text-sm font-semibold"
+            type="button"
+            onClick={() => {
+              if (canGoBack) {
+                router.back();
+              } else {
+                router.push('/');
+              }
+            }}
+          >
+            {'<- Back'}
+          </Button>
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-3xl font-semibold leading-tight">
-              Saved Courses
-            </h2>
+            <h2 className="text-3xl font-semibold leading-tight">My courses</h2>
           </div>
           {user && courses.length > 0 ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

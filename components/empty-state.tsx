@@ -68,12 +68,7 @@ export function EmptyState() {
             ariaLabel="Importing videos"
             dataTestid="jellyfin-import-loader"
           />
-          <div className="text-center space-y-1">
-            <p className="text-base font-semibold">Importing your videos…</p>
-            <p className="text-sm text-muted-foreground">
-              Hang tight while we save them to your library.
-            </p>
-          </div>
+          <div className="text-center space-y-1"></div>
         </div>
       ) : null}
       <div className="text-center space-y-4 max-w-lg">

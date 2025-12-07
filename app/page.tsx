@@ -5,6 +5,7 @@ import type { Prisma } from '@/lib/generated/prisma/client';
 import { HomePageContent } from '@/components/home-page-content';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 
 export const revalidate = 0;
 
@@ -135,6 +136,10 @@ export default async function Home({
 
   // Logic: Show clear button ONLY if we are in Inbox Mode (no courseId) AND there are videos to clear
   const showClearLibraryButton = !courseIdParam && videos.length > 0;
+  const cookieStore = await cookies();
+  const sidebarCookie = cookieStore.get('sidebar_state')?.value;
+  const initialSidebarOpen =
+    sidebarCookie === undefined ? true : sidebarCookie === 'true';
 
   return (
     <HomePageContent
@@ -149,6 +154,7 @@ export default async function Home({
       courseSaved={courseSaved}
       hasSavedCourses={hasSavedCourses}
       showClearLibraryButton={showClearLibraryButton} // Pass the calculated flag
+      initialSidebarOpen={initialSidebarOpen}
       user={
         user
           ? {

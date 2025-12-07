@@ -103,18 +103,7 @@ export function PageHeader({
               </Button>
             )}
 
-            {onCoursesPage ? (
-              <Button
-                asChild
-                variant="default"
-                size={btnSize}
-                className={btnClass}
-              >
-                <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-                  Back to course
-                </Link>
-              </Button>
-            ) : (
+            {!onCoursesPage && (
               <Button
                 asChild
                 variant="default"
