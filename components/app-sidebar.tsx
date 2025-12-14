@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Circle,
+  MoveHorizontal,
   Search,
   Trophy,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
@@ -38,9 +40,13 @@ type VideoListItem = {
 export function AppSidebar({
   videos,
   currentId,
+  sidebarWidth,
+  onSidebarWidthChange,
 }: {
   videos: VideoListItem[];
   currentId?: number;
+  sidebarWidth: number;
+  onSidebarWidthChange: (nextWidth: number) => void;
 }) {
   const searchParams = useSearchParams();
   const courseId = searchParams.get('courseId');
@@ -80,7 +86,10 @@ export function AppSidebar({
   );
 
   return (
-    <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
+    <Sidebar
+      collapsible="offcanvas"
+      className="relative border-r border-sidebar-border"
+    >
       <SidebarHeader className="gap-3">
         <ProgressSummary completed={completedCount} total={videos.length} />
         <div className="relative">
@@ -193,7 +202,113 @@ export function AppSidebar({
           ) : null}
         </div>
       </SidebarContent>
+      <SidebarResizeHandle
+        sidebarWidth={sidebarWidth}
+        onSidebarWidthChange={onSidebarWidthChange}
+      />
     </Sidebar>
+  );
+}
+
+export const SIDEBAR_MIN_WIDTH = 260;
+export const SIDEBAR_MAX_WIDTH = 520;
+export const SIDEBAR_DEFAULT_WIDTH = 320;
+
+type ResizeHandleProps = {
+  sidebarWidth: number;
+  onSidebarWidthChange: (nextWidth: number) => void;
+};
+
+function SidebarResizeHandle({
+  sidebarWidth,
+  onSidebarWidthChange,
+}: ResizeHandleProps) {
+  const { isMobile, state } = useSidebar();
+  const handleRef = useRef<HTMLButtonElement>(null);
+  const sidebarContainerRef = useRef<HTMLDivElement | null>(null);
+  const pointerIdRef = useRef<number | null>(null);
+  const draggingRef = useRef(false);
+
+  const clampWidth = useCallback((value: number) => {
+    const rounded = Math.round(value);
+    return Math.min(
+      SIDEBAR_MAX_WIDTH,
+      Math.max(SIDEBAR_MIN_WIDTH, rounded)
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!handleRef.current) return;
+    sidebarContainerRef.current = handleRef.current.closest(
+      '[data-slot="sidebar-container"]'
+    ) as HTMLDivElement | null;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      document.body.style.removeProperty('user-select');
+      document.body.style.removeProperty('cursor');
+    };
+  }, []);
+
+  if (isMobile || state === 'collapsed') {
+    return null;
+  }
+
+  const handlePointerDown = (
+    event: React.PointerEvent<HTMLButtonElement>
+  ) => {
+    if (event.button !== 0) return;
+    draggingRef.current = true;
+    pointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!draggingRef.current) return;
+    const left =
+      sidebarContainerRef.current?.getBoundingClientRect().left ?? 0;
+    const nextWidth = clampWidth(event.clientX - left);
+    onSidebarWidthChange(nextWidth);
+  };
+
+  const stopDragging = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    if (pointerIdRef.current !== null) {
+      event.currentTarget.releasePointerCapture(pointerIdRef.current);
+      pointerIdRef.current = null;
+    }
+    document.body.style.removeProperty('user-select');
+    document.body.style.removeProperty('cursor');
+  };
+
+  return (
+    <button
+      type="button"
+      ref={handleRef}
+      aria-label="Drag to resize sidebar"
+      role="separator"
+      aria-orientation="vertical"
+      aria-valuemin={SIDEBAR_MIN_WIDTH}
+      aria-valuemax={SIDEBAR_MAX_WIDTH}
+      aria-valuenow={sidebarWidth}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={stopDragging}
+      onPointerCancel={stopDragging}
+      className={cn(
+        'absolute -right-1.5 top-0 z-20 hidden h-full w-3 cursor-col-resize items-center justify-center rounded-sm bg-transparent transition-colors md:flex',
+        'focus-visible:outline focus-visible:outline-offset-0 focus-visible:outline-indigo-300',
+        'hover:bg-sidebar-border/40 active:bg-sidebar-border/60'
+      )}
+    >
+      <span className="flex h-12 w-3 items-center justify-center rounded-sm border border-sidebar-border/70 bg-sidebar/80 shadow-sm">
+        <MoveHorizontal className="h-3 w-3 text-sidebar-foreground/70" />
+      </span>
+    </button>
   );
 }
 

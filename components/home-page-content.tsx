@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useEffect, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { toast } from 'sonner';
 
-import { AppSidebar } from '@/components/app-sidebar';
+import {
+  AppSidebar,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+} from '@/components/app-sidebar';
 import { PageHeader } from '@/components/page-header';
 import { VideoPlayer } from '@/components/video-player';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -22,6 +27,13 @@ type SessionUser = {
   id: string;
   email?: string;
 } | null;
+
+const SIDEBAR_WIDTH_STORAGE_KEY = 'learning-platform:sidebar-width';
+
+const clampSidebarWidth = (width: number) => {
+  const rounded = Math.round(width);
+  return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, rounded));
+};
 
 export function HomePageContent({
   videos,
@@ -53,6 +65,23 @@ export function HomePageContent({
   initialSidebarOpen?: boolean;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(initialSidebarOpen);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window === 'undefined') {
+      return SIDEBAR_DEFAULT_WIDTH;
+    }
+    const stored = Number(window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY));
+    return Number.isFinite(stored)
+      ? clampSidebarWidth(stored)
+      : SIDEBAR_DEFAULT_WIDTH;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      SIDEBAR_WIDTH_STORAGE_KEY,
+      String(sidebarWidth)
+    );
+  }, [sidebarWidth]);
 
   useEffect(() => {
     if (courseSaved) {
@@ -90,13 +119,20 @@ export function HomePageContent({
       onOpenChange={setSidebarOpen}
       style={
         {
-          '--sidebar-width': '20rem',
+          '--sidebar-width': `${sidebarOpen ? sidebarWidth : 0}px`,
           '--sidebar-width-mobile': '18rem',
           '--sidebar-width-icon': '3rem',
         } as CSSProperties
       }
     >
-      <AppSidebar videos={videos} currentId={currentId} />
+      <AppSidebar
+        videos={videos}
+        currentId={currentId}
+        sidebarWidth={sidebarWidth}
+        onSidebarWidthChange={(nextWidth) =>
+          setSidebarWidth(clampSidebarWidth(nextWidth))
+        }
+      />
       <SidebarInset className="flex min-h-svh w-full min-w-0 overflow-x-hidden bg-background text-foreground">
         <div className="flex h-full w-full min-w-0 flex-col">
           <PageHeader
