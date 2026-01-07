@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Circle,
   Film,
+  FolderOpen,
   Maximize2,
   Minimize2,
   Pause,
@@ -17,6 +18,7 @@ import {
   VolumeX,
 } from 'lucide-react';
 
+import { useLocalPlayback } from '@/components/providers/local-playback-provider';
 import { setVideoCompletion } from '@/app/actions/video';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,6 +52,7 @@ export function VideoPlayer({
   nextId,
   canTrackProgress = false,
 }: VideoPlayerProps) {
+  const { isLinked, linkFolder, getFileBlobUrl } = useLocalPlayback();
   const searchParams = useSearchParams();
   const courseId = searchParams.get('courseId');
   const isRemote = video.path.startsWith('http');
@@ -70,6 +73,8 @@ export function VideoPlayer({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [controlsVisible, setControlsVisible] = useState(false);
 
+  const [localUrl, setLocalUrl] = useState<string | null>(null);
+
   const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
   const getLink = (id: number) => {
@@ -77,6 +82,19 @@ export function VideoPlayer({
   };
 
   // -- Effects --
+
+  // Attempt to resolve local file if needed
+  useEffect(() => {
+    // If not remote and we have access to local files, try to resolve it
+    if (!isRemote && isLinked) {
+      getFileBlobUrl(video.path).then((blobUrl) => {
+        if (blobUrl) {
+          setLocalUrl(blobUrl);
+          setErrorMessage(null);
+        }
+      });
+    }
+  }, [isRemote, isLinked, video.path, getFileBlobUrl]);
 
   // Handle Fullscreen changes
   useEffect(() => {
@@ -371,6 +389,8 @@ export function VideoPlayer({
     );
   };
 
+  const finalSrc = localUrl || streamUrl;
+
   return (
     <Card className="flex w-full flex-col overflow-hidden border-none bg-background shadow-none sm:px-6 px-0">
       <CardContent className="p-0">
@@ -384,7 +404,7 @@ export function VideoPlayer({
               key={video.id}
               className="h-full w-full cursor-pointer bg-background object-contain"
               preload="metadata"
-              src={streamUrl}
+              src={finalSrc}
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleLoadedMetadata}
               onError={handleVideoError}
@@ -403,6 +423,28 @@ export function VideoPlayer({
             className="mt-4 flex w-full flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
           >
             <p>{errorMessage}</p>
+
+            {!isRemote && !localUrl && (
+              <div className="mb-2 rounded-md bg-background/50 p-3">
+                <p className="mb-2 font-medium text-foreground">
+                  Is this a local file?
+                </p>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  If you are viewing this on a deployed site, the server cannot
+                  access your local files directly. You need to grant permission
+                  to your local video folder.
+                </p>
+                <Button
+                  onClick={() => linkFolder()}
+                  variant="secondary"
+                  size="sm"
+                >
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  Connect Local Folder
+                </Button>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline">
                 <a
