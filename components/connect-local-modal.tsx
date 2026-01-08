@@ -1,9 +1,14 @@
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
-import { FolderOpen, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { syncLibrary, type SyncResult } from '@/app/actions/sync';
+import { importVideoManifest } from '@/app/actions/import-manifest';
+import {
+  scanDirectoryForManifest,
+  type FileSystemDirectoryHandle,
+} from '@/lib/browser-fs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,133 +22,107 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const initialState: SyncResult = { ok: true, message: null };
-
 export function ConnectLocalModal({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, isPending] = useActionState(
-    syncLibrary,
-    initialState
-  );
-  const [replace, setReplace] = useState(true);
-  const [mode, setMode] = useState<'scan' | 'remove'>('scan');
+  const [isScanning, setIsScanning] = useState(false);
+  const [virtualRoot, setVirtualRoot] = useState('/home/user/videos');
 
-  // Close dialog on successful sync
-  useEffect(() => {
-    if (state.ok && state.message && !isPending && open) {
-      const id = requestAnimationFrame(() => setOpen(false));
-      return () => cancelAnimationFrame(id);
-    }
-  }, [state, isPending, open]);
+  const handleScan = async () => {
+    try {
+      if (!('showDirectoryPicker' in window)) {
+        toast.error('Your browser does not support local file access.');
+        return;
+      }
 
-  // Navigate to player after successful scan
-  useEffect(() => {
-    if (state.ok && state.message && !isPending && mode === 'scan') {
-      window.location.href = '/?promptSave=1&source=local';
+      setIsScanning(true);
+
+      // @ts-expect-error - showDirectoryPicker is experimental
+      const handle = await window.showDirectoryPicker();
+      if (!handle) {
+        setIsScanning(false);
+        return;
+      }
+
+      const dirHandle = handle as FileSystemDirectoryHandle;
+
+      toast.info('Scanning folder...');
+
+      const videos = await scanDirectoryForManifest(dirHandle, virtualRoot);
+
+      if (videos.length === 0) {
+        toast.warning('No video files found in that folder.');
+        setIsScanning(false);
+        return;
+      }
+
+      toast.info(`Found ${videos.length} videos. Importing metadata...`);
+
+      const result = await importVideoManifest(videos);
+
+      if (result.ok) {
+        toast.success(result.message);
+        setOpen(false);
+        // Refresh page to show new videos
+        window.location.href = '/?promptSave=1&source=local';
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err) {
+      console.error('Scan failed', err);
+      toast.error('Failed to scan folder.');
+    } finally {
+      setIsScanning(false);
     }
-  }, [state, isPending, mode]);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Scan Local Library</DialogTitle>
+          <DialogTitle>Scan Local Library (Browser)</DialogTitle>
           <DialogDescription>
-            Enter the absolute path to your video folder on the server. The scan
-            is recursive, so point this at a single course folder to avoid
-            pulling in your entire library.
+            Select a folder on your computer to scan. The browser will read the
+            filenames and add them to your library. Your videos stay on your
+            computer.
           </DialogDescription>
         </DialogHeader>
-        <form action={formAction} className="grid gap-4 py-4">
+        <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="path">Folder Path</Label>
-            <div className="relative">
-              <Input
-                id="path"
-                name="path"
-                placeholder="/home/user/videos"
-                className="pl-9"
-              />
-              <FolderOpen className="text-muted-foreground absolute left-3 top-2.5 h-4 w-4" />
-            </div>
+            <Label htmlFor="virtual-root">Virtual Path Prefix</Label>
+            <Input
+              id="virtual-root"
+              value={virtualRoot}
+              onChange={(e) => setVirtualRoot(e.target.value)}
+              placeholder="/home/user/videos"
+            />
             <p className="text-muted-foreground text-xs">
-              Leave empty to use the default configured root.
+              This path will be stored in the database as the location of these
+              files.
             </p>
           </div>
 
-          <fieldset className="grid gap-2">
-            <legend className="text-sm font-medium">Mode</legend>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex items-center gap-2 rounded-md border p-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="scan"
-                  checked={mode === 'scan'}
-                  onChange={() => setMode('scan')}
-                />
-                <span className="text-sm">Scan & add</span>
-              </label>
-              <label className="flex items-center gap-2 rounded-md border p-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="remove"
-                  checked={mode === 'remove'}
-                  onChange={() => setMode('remove')}
-                />
-                <span className="text-sm">Remove entries</span>
-              </label>
-            </div>
-          </fieldset>
-
-          {mode === 'scan' ? (
-            <label className="flex items-center justify-between rounded-md border p-3 cursor-pointer gap-3">
-              <div>
-                <p className="text-sm font-medium">Replace existing entries</p>
-                <p className="text-muted-foreground text-xs">
-                  Remove any local videos already tracked under this folder
-                  before reimporting.
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                name="replace"
-                value="true"
-                checked={replace}
-                onChange={(e) => setReplace(e.target.checked)}
-                className="h-4 w-4"
-              />
-              {!replace && <input type="hidden" name="replace" value="false" />}
-            </label>
-          ) : (
-            <input type="hidden" name="replace" value="false" />
-          )}
-
-          {state.message && (
-            <p
-              className={`text-sm ${
-                state.ok ? 'text-emerald-600' : 'text-destructive'
-              }`}
-            >
-              {state.message}
-            </p>
-          )}
+          <div className="rounded-md bg-secondary/20 p-4 text-sm text-secondary-foreground">
+            <p className="font-semibold mb-1">How this works:</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>We scan filenames in your selected folder.</li>
+              <li>
+                We send <strong>only metadata</strong> (names/paths) to the
+                server.
+              </li>
+              <li>
+                Actual video files are <strong>never uploaded</strong>.
+              </li>
+            </ul>
+          </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isPending
-                ? mode === 'remove'
-                  ? 'Removing...'
-                  : 'Scanning...'
-                : mode === 'remove'
-                  ? 'Remove entries'
-                  : 'Start scan'}
+            <Button onClick={handleScan} disabled={isScanning}>
+              {isScanning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isScanning ? 'Scanning...' : 'Select Folder & Scan'}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
