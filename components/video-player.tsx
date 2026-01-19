@@ -2,7 +2,13 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useOptimistic,
+  type MouseEvent,
+} from 'react';
 import {
   CheckCircle2,
   ChevronLeft,
@@ -58,8 +64,18 @@ export function VideoPlayer({
   const isRemote = video.path.startsWith('http');
   const streamUrl = isRemote ? video.path : `/api/stream?id=${video.id}`;
   const fileLabel = getFileLabel(video.path);
-  const nextCompletedValue = (!video.completed).toString();
+  const [optimisticCompleted, setOptimisticCompleted] = useOptimistic(
+    video.completed,
+    (state, newCompleted: boolean) => newCompleted,
+  );
+  const nextCompletedValue = (!optimisticCompleted).toString();
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  async function handleToggleCompletion(formData: FormData) {
+    const newCompleted = formData.get('completed') === 'true';
+    setOptimisticCompleted(newCompleted);
+    await setVideoCompletion(formData);
+  }
 
   // State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -140,7 +156,7 @@ export function VideoPlayer({
 
   const describePlaybackIssue = (
     mediaError?: MediaError | null,
-    domError?: unknown
+    domError?: unknown,
   ) => {
     if (typeof MediaError !== 'undefined' && mediaError) {
       switch (mediaError.code) {
@@ -466,7 +482,7 @@ export function VideoPlayer({
 
       <CardHeader className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          {video.completed ? (
+          {optimisticCompleted ? (
             <Badge
               variant="secondary"
               className="flex items-center gap-1 text-emerald-600"
@@ -529,17 +545,17 @@ export function VideoPlayer({
           )}
         </div>
 
-        <form action={setVideoCompletion} className="w-full">
+        <form action={handleToggleCompletion} className="w-full">
           <input type="hidden" name="videoId" value={video.id} />
           <input type="hidden" name="completed" value={nextCompletedValue} />
           <Button
             type="submit"
             size="lg"
             disabled={!canTrackProgress}
-            variant={video.completed ? 'default' : 'default'}
+            variant={optimisticCompleted ? 'default' : 'default'}
             className="w-full"
           >
-            {video.completed ? 'Mark as Incomplete' : 'Mark as Complete'}
+            {optimisticCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}
           </Button>
         </form>
       </CardFooter>
@@ -576,16 +592,16 @@ export function VideoPlayer({
         </div>
 
         <div className="ml-auto flex flex-col items-end gap-2">
-          <form action={setVideoCompletion}>
+          <form action={handleToggleCompletion}>
             <input type="hidden" name="videoId" value={video.id} />
             <input type="hidden" name="completed" value={nextCompletedValue} />
             <Button
               type="submit"
               size="lg"
               disabled={!canTrackProgress}
-              variant={video.completed ? 'default' : 'default'}
+              variant={optimisticCompleted ? 'default' : 'default'}
             >
-              {video.completed ? 'Mark as Incomplete' : 'Mark as Complete'}
+              {optimisticCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}
             </Button>
           </form>
         </div>
